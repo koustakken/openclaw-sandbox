@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../shared/api';
+import css from './Page.module.css';
 
 export function ProfilePage() {
   const [email, setEmail] = useState<string>('');
@@ -17,10 +18,10 @@ export function ProfilePage() {
   }, []);
 
   if (loading) return <p>Loading profile...</p>;
-  if (error) return <p style={{ color: 'crimson' }}>{error}</p>;
+  if (error) return <p className={css.error}>{error}</p>;
 
   return (
-    <section>
+    <section className={css.section}>
       <h2>Profile</h2>
       <p>You are logged in as: {email}</p>
     </section>

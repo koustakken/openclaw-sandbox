@@ -2,6 +2,7 @@ import { type FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../shared/api';
 import { authStorage } from '../shared/authStorage';
+import css from './AuthForm.module.css';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -26,9 +27,9 @@ export function LoginPage() {
   };
 
   return (
-    <section>
+    <section className={css.section}>
       <h2>Login</h2>
-      <form onSubmit={onSubmit} style={{ display: 'grid', gap: '0.75rem', maxWidth: 360 }}>
+      <form onSubmit={onSubmit} className={css.form}>
         <input
           type="email"
           placeholder="Email"
@@ -45,7 +46,7 @@ export function LoginPage() {
         />
         <button type="submit">Sign in</button>
       </form>
-      {error && <p style={{ color: 'crimson' }}>{error}</p>}
+      {error && <p className={css.error}>{error}</p>}
     </section>
   );
 }
