@@ -13,12 +13,14 @@
   "dependencies": {
     "@packages/shared": "workspace:*",
     "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.6.2",
     "cors": "^2.8.5",
     "express": "^4.21.1",
     "jsonwebtoken": "^9.0.3",
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.10",

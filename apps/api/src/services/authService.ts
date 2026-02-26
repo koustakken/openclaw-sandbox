@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
+import { db } from '../db';
 import type { PublicUser, User } from '../types/auth';
 
 const registerSchema = z.object({
@@ -17,8 +18,21 @@ const refreshSchema = z.object({
   refreshToken: z.string().min(1)
 });
 
-const users = new Map<string, User>();
-const refreshTokens = new Map<string, string>();
+type UserRow = {
+  id: string;
+  email: string;
+  password_hash: string;
+  created_at: string;
+};
+
+function toUser(row: UserRow): User {
+  return {
+    id: row.id,
+    email: row.email,
+    passwordHash: row.password_hash,
+    createdAt: row.created_at
+  };
+}
 
 function toPublicUser(user: User): PublicUser {
   const { passwordHash: _passwordHash, ...rest } = user;
@@ -40,30 +54,43 @@ export function parseRefreshInput(input: unknown) {
 export async function registerUser(email: string, password: string): Promise<PublicUser> {
   const normalizedEmail = email.toLowerCase().trim();
 
-  if (users.has(normalizedEmail)) {
+  const existing = db
+    .prepare('SELECT id, email, password_hash, created_at FROM users WHERE email = ?')
+    .get(normalizedEmail) as UserRow | undefined;
+
+  if (existing) {
     throw new Error('USER_ALREADY_EXISTS');
   }
 
-  const passwordHash = await bcrypt.hash(password, 10);
   const user: User = {
     id: crypto.randomUUID(),
     email: normalizedEmail,
-    passwordHash,
+    passwordHash: await bcrypt.hash(password, 10),
     createdAt: new Date().toISOString()
   };
 
-  users.set(normalizedEmail, user);
+  db.prepare('INSERT INTO users (id, email, password_hash, created_at) VALUES (?, ?, ?, ?)').run(
+    user.id,
+    user.email,
+    user.passwordHash,
+    user.createdAt
+  );
+
   return toPublicUser(user);
 }
 
 export async function loginUser(email: string, password: string): Promise<PublicUser> {
   const normalizedEmail = email.toLowerCase().trim();
-  const user = users.get(normalizedEmail);
 
-  if (!user) {
+  const row = db
+    .prepare('SELECT id, email, password_hash, created_at FROM users WHERE email = ?')
+    .get(normalizedEmail) as UserRow | undefined;
+
+  if (!row) {
     throw new Error('INVALID_CREDENTIALS');
   }
 
+  const user = toUser(row);
   const isValid = await bcrypt.compare(password, user.passwordHash);
   if (!isValid) {
     throw new Error('INVALID_CREDENTIALS');
@@ -92,7 +119,13 @@ export function verifyAccessToken(token: string): { sub: string; email: string }
 
 export function issueRefreshToken(user: PublicUser): string {
   const refreshToken = crypto.randomUUID();
-  refreshTokens.set(refreshToken, user.id);
+
+  db.prepare('INSERT INTO refresh_tokens (token, user_id, created_at) VALUES (?, ?, ?)').run(
+    refreshToken,
+    user.id,
+    new Date().toISOString()
+  );
+
   return refreshToken;
 }
 
@@ -100,18 +133,22 @@ export function rotateRefreshToken(refreshToken: string): {
   accessToken: string;
   refreshToken: string;
 } {
-  const userId = refreshTokens.get(refreshToken);
-  if (!userId) {
+  const row = db
+    .prepare(
+      `SELECT u.id, u.email, u.password_hash, u.created_at
+       FROM refresh_tokens rt
+       JOIN users u ON u.id = rt.user_id
+       WHERE rt.token = ?`
+    )
+    .get(refreshToken) as UserRow | undefined;
+
+  if (!row) {
     throw new Error('INVALID_REFRESH_TOKEN');
   }
 
-  const user = [...users.values()].find((item) => item.id === userId);
-  if (!user) {
-    refreshTokens.delete(refreshToken);
-    throw new Error('INVALID_REFRESH_TOKEN');
-  }
+  db.prepare('DELETE FROM refresh_tokens WHERE token = ?').run(refreshToken);
 
-  refreshTokens.delete(refreshToken);
+  const user = toUser(row);
   const publicUser = toPublicUser(user);
   const nextRefreshToken = issueRefreshToken(publicUser);
 
@@ -122,5 +159,5 @@ export function rotateRefreshToken(refreshToken: string): {
 }
 
 export function revokeRefreshToken(refreshToken: string) {
-  refreshTokens.delete(refreshToken);
+  db.prepare('DELETE FROM refresh_tokens WHERE token = ?').run(refreshToken);
 }
