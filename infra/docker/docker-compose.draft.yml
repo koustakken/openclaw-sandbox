@@ -1,0 +1,22 @@
+# Draft only — not used right now.
+# Uncomment and adjust when you decide to dockerize.
+
+# version: "3.9"
+# services:
+#   api:
+#     build:
+#       context: ../../
+#       dockerfile: ./infra/docker/Dockerfile.api
+#     ports:
+#       - "3001:3001"
+#     environment:
+#       - NODE_ENV=production
+#
+#   web:
+#     build:
+#       context: ../../
+#       dockerfile: ./infra/docker/Dockerfile.web
+#     ports:
+#       - "5173:5173"
+#     depends_on:
+#       - api
