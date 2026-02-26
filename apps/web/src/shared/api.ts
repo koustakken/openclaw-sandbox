@@ -11,15 +11,20 @@ type RefreshResponse = {
   refreshToken: string;
 };
 
-const envApiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '');
-const vercelFallback =
-  typeof window !== 'undefined' && window.location.hostname.endsWith('vercel.app')
-    ? 'https://api-five-omega-67.vercel.app'
-    : '/api';
-const apiBaseUrl = envApiBase || vercelFallback;
+const apiBaseUrl =
+  (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') || '/api';
 
 function buildUrl(path: string) {
-  return `${apiBaseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${apiBaseUrl}${normalizedPath}`;
+}
+
+function mapHttpError(status: number, text: string) {
+  if (status === 405 && text.includes('405 Not Allowed')) {
+    return 'Auth API is not configured for this environment. Set VITE_API_BASE_URL to your backend URL.';
+  }
+
+  return text || `HTTP ${status}`;
 }
 
 async function rawRequest(path: string, init?: RequestInit) {
@@ -67,7 +72,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(text || `HTTP ${res.status}`);
+    throw new Error(mapHttpError(res.status, text));
   }
 
   if (res.status === 204) {
