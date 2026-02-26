@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
@@ -17,6 +18,12 @@ const loginSchema = z.object({
 const refreshSchema = z.object({
   refreshToken: z.string().min(1)
 });
+
+const MAX_SESSIONS_PER_USER = 5;
+
+function hashToken(token: string): string {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
 
 type UserRow = {
   id: string;
@@ -119,12 +126,25 @@ export function verifyAccessToken(token: string): { sub: string; email: string }
 
 export function issueRefreshToken(user: PublicUser): string {
   const refreshToken = crypto.randomUUID();
+  const tokenHash = hashToken(refreshToken);
+  const createdAt = new Date().toISOString();
 
-  db.prepare('INSERT INTO refresh_tokens (token, user_id, created_at) VALUES (?, ?, ?)').run(
-    refreshToken,
+  db.prepare('INSERT INTO refresh_tokens (token_hash, user_id, created_at) VALUES (?, ?, ?)').run(
+    tokenHash,
     user.id,
-    new Date().toISOString()
+    createdAt
   );
+
+  db.prepare(
+    `DELETE FROM refresh_tokens
+     WHERE token_hash IN (
+       SELECT token_hash
+       FROM refresh_tokens
+       WHERE user_id = ?
+       ORDER BY created_at DESC
+       LIMIT -1 OFFSET ?
+     )`
+  ).run(user.id, MAX_SESSIONS_PER_USER);
 
   return refreshToken;
 }
@@ -133,20 +153,22 @@ export function rotateRefreshToken(refreshToken: string): {
   accessToken: string;
   refreshToken: string;
 } {
+  const tokenHash = hashToken(refreshToken);
+
   const row = db
     .prepare(
       `SELECT u.id, u.email, u.password_hash, u.created_at
        FROM refresh_tokens rt
        JOIN users u ON u.id = rt.user_id
-       WHERE rt.token = ?`
+       WHERE rt.token_hash = ?`
     )
-    .get(refreshToken) as UserRow | undefined;
+    .get(tokenHash) as UserRow | undefined;
 
   if (!row) {
     throw new Error('INVALID_REFRESH_TOKEN');
   }
 
-  db.prepare('DELETE FROM refresh_tokens WHERE token = ?').run(refreshToken);
+  db.prepare('DELETE FROM refresh_tokens WHERE token_hash = ?').run(tokenHash);
 
   const user = toUser(row);
   const publicUser = toPublicUser(user);
@@ -159,5 +181,6 @@ export function rotateRefreshToken(refreshToken: string): {
 }
 
 export function revokeRefreshToken(refreshToken: string) {
-  db.prepare('DELETE FROM refresh_tokens WHERE token = ?').run(refreshToken);
+  const tokenHash = hashToken(refreshToken);
+  db.prepare('DELETE FROM refresh_tokens WHERE token_hash = ?').run(tokenHash);
 }
