@@ -15,7 +15,10 @@ export function RegisterPage() {
 
     try {
       const result = await api.register({ email, password });
-      authStorage.setToken(result.accessToken);
+      authStorage.setSession({
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken
+      });
       navigate('/profile');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Registration failed');

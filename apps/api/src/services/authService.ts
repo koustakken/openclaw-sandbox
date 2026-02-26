@@ -13,11 +13,15 @@ const loginSchema = z.object({
   password: z.string().min(1)
 });
 
+const refreshSchema = z.object({
+  refreshToken: z.string().min(1)
+});
+
 const users = new Map<string, User>();
+const refreshTokens = new Map<string, string>();
 
 function toPublicUser(user: User): PublicUser {
-  const rest = { ...user };
-  delete rest.passwordHash;
+  const { passwordHash: _passwordHash, ...rest } = user;
   return rest;
 }
 
@@ -27,6 +31,10 @@ export function parseRegisterInput(input: unknown) {
 
 export function parseLoginInput(input: unknown) {
   return loginSchema.parse(input);
+}
+
+export function parseRefreshInput(input: unknown) {
+  return refreshSchema.parse(input);
 }
 
 export async function registerUser(email: string, password: string): Promise<PublicUser> {
@@ -73,7 +81,7 @@ export function signAccessToken(user: PublicUser): string {
       email: user.email
     },
     secret,
-    { expiresIn: '7d' }
+    { expiresIn: '15m' }
   );
 }
 
@@ -82,7 +90,37 @@ export function verifyAccessToken(token: string): { sub: string; email: string }
   return jwt.verify(token, secret) as { sub: string; email: string };
 }
 
-export function getUserByEmail(email: string): PublicUser | null {
-  const user = users.get(email.toLowerCase().trim());
-  return user ? toPublicUser(user) : null;
+export function issueRefreshToken(user: PublicUser): string {
+  const refreshToken = crypto.randomUUID();
+  refreshTokens.set(refreshToken, user.id);
+  return refreshToken;
+}
+
+export function rotateRefreshToken(refreshToken: string): {
+  accessToken: string;
+  refreshToken: string;
+} {
+  const userId = refreshTokens.get(refreshToken);
+  if (!userId) {
+    throw new Error('INVALID_REFRESH_TOKEN');
+  }
+
+  const user = [...users.values()].find((item) => item.id === userId);
+  if (!user) {
+    refreshTokens.delete(refreshToken);
+    throw new Error('INVALID_REFRESH_TOKEN');
+  }
+
+  refreshTokens.delete(refreshToken);
+  const publicUser = toPublicUser(user);
+  const nextRefreshToken = issueRefreshToken(publicUser);
+
+  return {
+    accessToken: signAccessToken(publicUser),
+    refreshToken: nextRefreshToken
+  };
+}
+
+export function revokeRefreshToken(refreshToken: string) {
+  refreshTokens.delete(refreshToken);
 }

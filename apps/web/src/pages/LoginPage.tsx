@@ -15,7 +15,10 @@ export function LoginPage() {
 
     try {
       const result = await api.login({ email, password });
-      authStorage.setToken(result.accessToken);
+      authStorage.setSession({
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken
+      });
       navigate('/profile');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Login failed');
