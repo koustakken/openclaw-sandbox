@@ -20,7 +20,9 @@ By default:
 
 ## Environment
 
-Copy `.env.example` to `.env` and adjust if needed.
+- Root: copy `.env.example` to `.env`
+- API: copy `apps/api/.env.example` to `apps/api/.env`
+- Web: copy `apps/web/.env.example` to `apps/web/.env`
 
 ## Scripts
 
