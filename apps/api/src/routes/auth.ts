@@ -26,6 +26,7 @@ authRouter.post('/register', async (req, res) => {
       refreshToken: await issueRefreshToken(user)
     });
   } catch (err: unknown) {
+    console.error('register error', err);
     if (err instanceof z.ZodError) {
       return res.status(400).json({ message: 'Invalid input', issues: err.issues });
     }
@@ -49,6 +50,7 @@ authRouter.post('/login', async (req, res) => {
       refreshToken: await issueRefreshToken(user)
     });
   } catch (err: unknown) {
+    console.error('login error', err);
     if (err instanceof z.ZodError) {
       return res.status(400).json({ message: 'Invalid input', issues: err.issues });
     }
@@ -67,6 +69,7 @@ authRouter.post('/refresh', async (req, res) => {
     const rotated = await rotateRefreshToken(refreshToken);
     return res.json(rotated);
   } catch (err: unknown) {
+    console.error('refresh error', err);
     if (err instanceof z.ZodError) {
       return res.status(400).json({ message: 'Invalid input', issues: err.issues });
     }
@@ -85,6 +88,7 @@ authRouter.post('/logout', async (req, res) => {
     await revokeRefreshToken(refreshToken);
     return res.status(204).send();
   } catch (err: unknown) {
+    console.error('logout error', err);
     if (err instanceof z.ZodError) {
       return res.status(400).json({ message: 'Invalid input', issues: err.issues });
     }

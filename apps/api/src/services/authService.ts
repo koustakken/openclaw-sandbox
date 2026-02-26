@@ -34,7 +34,13 @@ type UserRow = {
 };
 
 const databaseUrl = process.env.DATABASE_URL;
-const pool = databaseUrl ? new Pool({ connectionString: databaseUrl }) : null;
+const normalizedDatabaseUrl = databaseUrl?.replace('sslmode=require', 'sslmode=no-verify');
+const pool = normalizedDatabaseUrl
+  ? new Pool({
+      connectionString: normalizedDatabaseUrl,
+      ssl: { rejectUnauthorized: false }
+    })
+  : null;
 let pgReady = false;
 
 async function ensurePgSchema() {
