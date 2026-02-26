@@ -1,0 +1,29 @@
+.h1 {
+  font-size: 28px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.h2 {
+  font-size: 22px;
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+.body {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.muted {
+  color: #57606a;
+}
+
+.link {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+}

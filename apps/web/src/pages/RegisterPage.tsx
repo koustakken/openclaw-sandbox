@@ -1,5 +1,9 @@
 import { type FormEvent, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { Button } from '../components/ui/Button';
+import { Field } from '../components/ui/Field';
+import { Notification } from '../components/ui/Notification';
+import { Typography } from '../components/ui/Typography';
 import { api } from '../shared/api';
 import { authStorage } from '../shared/authStorage';
 import css from './AuthForm.module.css';
@@ -28,26 +32,43 @@ export function RegisterPage() {
 
   return (
     <section className={css.section}>
-      <h2>Register</h2>
+      <Typography as="h2" variant="h2">
+        Register
+      </Typography>
+
       <form onSubmit={onSubmit} className={css.form}>
-        <input
+        <Field
+          label="Email"
           type="email"
-          placeholder="Email"
+          placeholder="you@example.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
         />
-        <input
+
+        <Field
+          label="Password"
           type="password"
-          placeholder="Password (min 8 chars)"
+          placeholder="At least 8 characters"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
           minLength={8}
         />
-        <button type="submit">Create account</button>
+
+        <Button type="submit" variant="primary">
+          Create account
+        </Button>
       </form>
-      {error && <p className={css.error}>{error}</p>}
+
+      {error && <Notification tone="error">{error}</Notification>}
+
+      <Typography variant="muted">
+        Already have an account?{' '}
+        <Link className={css.link} to="/login">
+          Sign in
+        </Link>
+      </Typography>
     </section>
   );
 }

@@ -6,12 +6,16 @@ import { HealthPage } from './pages/HealthPage';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { RegisterPage } from './pages/RegisterPage';
 
 const router = createBrowserRouter(
   [
     {
       element: <GuestOnlyRoute />,
-      children: [{ path: '/login', element: <LoginPage /> }]
+      children: [
+        { path: '/login', element: <LoginPage /> },
+        { path: '/register', element: <RegisterPage /> }
+      ]
     },
     {
       element: <ProtectedRoute />,
