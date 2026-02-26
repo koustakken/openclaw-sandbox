@@ -1,6 +1,13 @@
 {
-  "extends": "../../packages/tsconfig/base.json",
+  "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "sourceMap": true,
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "Bundler",
@@ -9,8 +16,7 @@
     "types": ["vite/client"],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-      "@packages/shared": ["../../packages/shared/src"]
+      "@/*": ["src/*"]
     }
   },
   "include": ["src"]

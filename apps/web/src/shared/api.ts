@@ -1,5 +1,9 @@
-import type { HealthResponse } from '@packages/shared';
 import type { AuthResponse } from '../types/auth';
+
+type HealthResponse = {
+  ok: boolean;
+  service: string;
+};
 import { authStorage } from './authStorage';
 
 type RefreshResponse = {

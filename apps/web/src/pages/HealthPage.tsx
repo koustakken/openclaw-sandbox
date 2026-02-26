@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
-import type { HealthResponse } from '@packages/shared';
 import { api } from '../shared/api';
+
+type HealthResponse = {
+  ok: boolean;
+  service: string;
+};
 
 export function HealthPage() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
