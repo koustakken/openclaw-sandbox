@@ -1,14 +1,19 @@
 .section {
   display: grid;
-  gap: 12px;
+  gap: 14px;
+  max-width: 360px;
 }
 
 .form {
   display: grid;
   gap: 12px;
-  max-width: 360px;
 }
 
-.error {
-  color: var(--color-danger);
+.link {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
 }
