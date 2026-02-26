@@ -25,6 +25,7 @@ By default:
 - Web: copy `apps/web/.env.example` to `apps/web/.env`
 
 API uses SQLite for auth persistence (`DATABASE_PATH`, default `./data/auth.db`).
+For web, set `VITE_API_BASE_URL` (`/api` in local dev, full backend URL in production).
 
 ## Scripts
 
