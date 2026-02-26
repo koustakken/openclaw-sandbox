@@ -4,6 +4,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { HealthPage } from './pages/HealthPage';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
+import { NotFoundPage } from './pages/NotFoundPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { RegisterPage } from './pages/RegisterPage';
 
@@ -20,7 +21,8 @@ const router = createBrowserRouter(
         {
           element: <ProtectedRoute />,
           children: [{ path: 'profile', element: <ProfilePage /> }]
-        }
+        },
+        { path: '*', element: <NotFoundPage /> }
       ]
     }
   ],
