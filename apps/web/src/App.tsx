@@ -1,27 +1,35 @@
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { Navigate, createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { GuestOnlyRoute } from './components/GuestOnlyRoute';
 import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { HealthPage } from './pages/HealthPage';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 import { ProfilePage } from './pages/ProfilePage';
-import { RegisterPage } from './pages/RegisterPage';
 
 const router = createBrowserRouter(
   [
     {
-      path: '/',
-      element: <Layout />,
+      element: <GuestOnlyRoute />,
+      children: [{ path: '/login', element: <LoginPage /> }]
+    },
+    {
+      element: <ProtectedRoute />,
       children: [
-        { index: true, element: <HomePage /> },
-        { path: 'health', element: <HealthPage /> },
-        { path: 'login', element: <LoginPage /> },
-        { path: 'register', element: <RegisterPage /> },
         {
-          element: <ProtectedRoute />,
-          children: [{ path: 'profile', element: <ProfilePage /> }]
+          path: '/',
+          element: <Layout />,
+          children: [
+            { index: true, element: <HomePage /> },
+            { path: 'health', element: <HealthPage /> },
+            { path: 'profile', element: <ProfilePage /> }
+          ]
         }
       ]
+    },
+    {
+      path: '*',
+      element: <Navigate to="/login" replace />
     }
   ],
   {
