@@ -1,5 +1,5 @@
-.section {
-  min-height: 100vh;
+.page {
+  min-height: calc(100vh - 160px);
   display: grid;
   place-items: center;
   padding: 24px;
@@ -9,12 +9,17 @@
   width: 100%;
   max-width: 380px;
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
 
 .form {
   display: grid;
-  gap: 12px;
+  gap: 10px;
+}
+
+.linkRow {
+  font-size: 14px;
+  color: #57606a;
 }
 
 .link {
@@ -24,4 +29,8 @@
 
 .link:hover {
   text-decoration: underline;
+}
+
+.error {
+  color: var(--color-danger);
 }

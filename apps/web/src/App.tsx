@@ -5,6 +5,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { HealthPage } from './pages/HealthPage';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
+import { NotFoundPage } from './pages/NotFoundPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { RegisterPage } from './pages/RegisterPage';
 
@@ -26,15 +27,13 @@ const router = createBrowserRouter(
           children: [
             { index: true, element: <HomePage /> },
             { path: 'health', element: <HealthPage /> },
-            { path: 'profile', element: <ProfilePage /> }
+            { path: 'profile', element: <ProfilePage /> },
+            { path: '*', element: <NotFoundPage /> }
           ]
         }
       ]
     },
-    {
-      path: '*',
-      element: <Navigate to="/login" replace />
-    }
+    { path: '*', element: <Navigate to="/login" replace /> }
   ],
   {
     basename: import.meta.env.BASE_URL

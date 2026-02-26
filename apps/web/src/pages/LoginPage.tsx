@@ -32,42 +32,44 @@ export function LoginPage() {
 
   return (
     <section className={css.section}>
-      <Typography as="h2" variant="h2">
-        Login
-      </Typography>
+      <div className={css.card}>
+        <Typography as="h2" variant="h2">
+          Login
+        </Typography>
 
-      <form onSubmit={onSubmit} className={css.form}>
-        <Field
-          label="Email"
-          type="email"
-          placeholder="you@example.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
+        <form onSubmit={onSubmit} className={css.form}>
+          <Field
+            label="Email"
+            type="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
 
-        <Field
-          label="Password"
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
+          <Field
+            label="Password"
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
 
-        <Button type="submit" variant="primary">
-          Sign in
-        </Button>
-      </form>
+          <Button type="submit" variant="primary">
+            Sign in
+          </Button>
+        </form>
 
-      {error && <Notification tone="error">{error}</Notification>}
+        {error && <Notification tone="error">{error}</Notification>}
 
-      <Typography variant="muted">
-        No account yet?{' '}
-        <Link className={css.link} to="/register">
-          Create one
-        </Link>
-      </Typography>
+        <Typography variant="muted">
+          No account yet?{' '}
+          <Link className={css.link} to="/register">
+            Create one
+          </Link>
+        </Typography>
+      </div>
     </section>
   );
 }

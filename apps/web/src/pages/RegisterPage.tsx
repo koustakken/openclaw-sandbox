@@ -32,43 +32,45 @@ export function RegisterPage() {
 
   return (
     <section className={css.section}>
-      <Typography as="h2" variant="h2">
-        Register
-      </Typography>
+      <div className={css.card}>
+        <Typography as="h2" variant="h2">
+          Register
+        </Typography>
 
-      <form onSubmit={onSubmit} className={css.form}>
-        <Field
-          label="Email"
-          type="email"
-          placeholder="you@example.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
+        <form onSubmit={onSubmit} className={css.form}>
+          <Field
+            label="Email"
+            type="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
 
-        <Field
-          label="Password"
-          type="password"
-          placeholder="At least 8 characters"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          minLength={8}
-        />
+          <Field
+            label="Password"
+            type="password"
+            placeholder="At least 8 characters"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            minLength={8}
+          />
 
-        <Button type="submit" variant="primary">
-          Create account
-        </Button>
-      </form>
+          <Button type="submit" variant="primary">
+            Create account
+          </Button>
+        </form>
 
-      {error && <Notification tone="error">{error}</Notification>}
+        {error && <Notification tone="error">{error}</Notification>}
 
-      <Typography variant="muted">
-        Already have an account?{' '}
-        <Link className={css.link} to="/login">
-          Sign in
-        </Link>
-      </Typography>
+        <Typography variant="muted">
+          Already have an account?{' '}
+          <Link className={css.link} to="/login">
+            Sign in
+          </Link>
+        </Typography>
+      </div>
     </section>
   );
 }
