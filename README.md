@@ -18,6 +18,19 @@ By default:
 - web: http://localhost:5173
 - api: http://localhost:3001
 
+### Temporary local backend via json-server
+
+If you don't run the real API yet, use mock backend:
+
+```bash
+pnpm dev:web-mock
+```
+
+This starts:
+
+- `apps/mock-api` on `http://localhost:3001`
+- `apps/web` on `http://localhost:5173`
+
 ## Environment
 
 - Root: copy `.env.example` to `.env`
@@ -42,6 +55,7 @@ pnpm format
 apps/
   web/
   api/
+  mock-api/
 packages/
   shared/
   tsconfig/
