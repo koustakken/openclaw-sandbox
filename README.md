@@ -1,8 +1,9 @@
 # openclaw-sandbox
 
-Monorepo with:
-- `apps/web` — Vite + React + TypeScript
-- `apps/api` — Express + TypeScript
+TypeScript monorepo:
+
+- `apps/web` — Vite + React
+- `apps/api` — Express
 - `packages/shared` — shared types/utilities
 
 ## Quick start
@@ -12,7 +13,26 @@ pnpm install
 pnpm dev
 ```
 
-## Structure
+By default:
+
+- web: http://localhost:5173
+- api: http://localhost:3001
+
+## Environment
+
+Copy `.env.example` to `.env` and adjust if needed.
+
+## Scripts
+
+```bash
+pnpm dev
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format
+```
+
+## Project structure
 
 ```text
 apps/
@@ -22,5 +42,5 @@ packages/
   shared/
   tsconfig/
 infra/
-  docker/
+  docker/   # commented draft for future dockerization
 ```

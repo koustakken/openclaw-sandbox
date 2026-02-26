@@ -6,7 +6,11 @@
     "moduleResolution": "NodeNext",
     "target": "ES2022",
     "lib": ["ES2022"],
-    "types": ["node"]
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@packages/shared": ["../../packages/shared/src"]
+    }
   },
   "include": ["src"]
 }

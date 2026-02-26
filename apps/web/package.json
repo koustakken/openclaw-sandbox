@@ -8,8 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "lint": "echo 'lint not configured yet'",
-    "format": "echo 'format not configured yet'"
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "format": "prettier --write ."
   },
   "dependencies": {
     "react": "^18.3.1",
