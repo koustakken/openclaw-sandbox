@@ -1,4 +1,5 @@
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { Navigate, createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { GuestOnlyRoute } from './components/GuestOnlyRoute';
 import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { HealthPage } from './pages/HealthPage';
@@ -11,20 +12,28 @@ import { RegisterPage } from './pages/RegisterPage';
 const router = createBrowserRouter(
   [
     {
-      path: '/',
-      element: <Layout />,
+      element: <GuestOnlyRoute />,
       children: [
-        { index: true, element: <HomePage /> },
-        { path: 'health', element: <HealthPage /> },
-        { path: 'login', element: <LoginPage /> },
-        { path: 'register', element: <RegisterPage /> },
-        {
-          element: <ProtectedRoute />,
-          children: [{ path: 'profile', element: <ProfilePage /> }]
-        },
-        { path: '*', element: <NotFoundPage /> }
+        { path: '/login', element: <LoginPage /> },
+        { path: '/register', element: <RegisterPage /> }
       ]
-    }
+    },
+    {
+      element: <ProtectedRoute />,
+      children: [
+        {
+          path: '/',
+          element: <Layout />,
+          children: [
+            { index: true, element: <HomePage /> },
+            { path: 'health', element: <HealthPage /> },
+            { path: 'profile', element: <ProfilePage /> },
+            { path: '*', element: <NotFoundPage /> }
+          ]
+        }
+      ]
+    },
+    { path: '*', element: <Navigate to="/login" replace /> }
   ],
   {
     basename: import.meta.env.BASE_URL

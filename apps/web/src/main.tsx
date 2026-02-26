@@ -1,6 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { App } from './App';
+import './styles/reset.css';
+import './styles/vars.css';
+import './styles/theme.css';
 
 const params = new URLSearchParams(window.location.search);
 const redirect = params.get('redirect');
