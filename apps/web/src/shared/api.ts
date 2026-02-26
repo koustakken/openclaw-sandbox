@@ -99,5 +99,65 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ refreshToken: authStorage.getRefreshToken() })
     }),
-  me: () => request<{ user: { sub: string; email: string } }>('/auth/me')
+  me: () => request<{ user: { sub: string; email: string } }>('/auth/me'),
+  dashboard: () =>
+    request<{
+      stats: { exercise: string; bestWeight: number }[];
+      plansCount: number;
+      workoutsCount: number;
+    }>('/training/dashboard'),
+  listExercises: () =>
+    request<Array<{ id: string; name: string; isBase: boolean }>>('/training/exercises'),
+  addExercise: (name: string) =>
+    request<{ id: string; name: string; isBase: boolean }>('/training/exercises', {
+      method: 'POST',
+      body: JSON.stringify({ name })
+    }),
+  listPlans: () =>
+    request<Array<{ id: string; title: string; content: string; status: string; version: number }>>(
+      '/training/plans'
+    ),
+  createPlan: (payload: {
+    title: string;
+    content: string;
+    status?: 'draft' | 'active' | 'archived';
+  }) => request('/training/plans', { method: 'POST', body: JSON.stringify(payload) }),
+  updatePlan: (
+    id: string,
+    payload: { title: string; content: string; status?: 'draft' | 'active' | 'archived' }
+  ) => request(`/training/plans/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  deletePlan: (id: string) => request(`/training/plans/${id}`, { method: 'DELETE' }),
+  listWorkouts: () =>
+    request<
+      Array<{
+        id: string;
+        exercise: string;
+        reps: number;
+        weight: number;
+        notes?: string;
+        performed_at: string;
+      }>
+    >('/training/workouts'),
+  createWorkout: (payload: {
+    exercise: string;
+    reps: number;
+    weight: number;
+    notes?: string;
+    performedAt?: string;
+  }) => request('/training/workouts', { method: 'POST', body: JSON.stringify(payload) }),
+  updateWorkout: (
+    id: string,
+    payload: {
+      exercise: string;
+      reps: number;
+      weight: number;
+      notes?: string;
+      performedAt?: string;
+    }
+  ) => request(`/training/workouts/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  deleteWorkout: (id: string) => request(`/training/workouts/${id}`, { method: 'DELETE' }),
+  addAthlete: (athleteId: string) =>
+    request('/training/coach/athletes', { method: 'POST', body: JSON.stringify({ athleteId }) }),
+  addComment: (payload: { athleteId: string; planId: string; comment: string }) =>
+    request('/training/coach/comments', { method: 'POST', body: JSON.stringify(payload) })
 };
