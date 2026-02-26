@@ -1,20 +1,31 @@
 import type { AuthResponse } from '../types/auth';
+import { authStorage } from './authStorage';
 
 type HealthResponse = {
   ok: boolean;
   service: string;
 };
-import { authStorage } from './authStorage';
 
 type RefreshResponse = {
   accessToken: string;
   refreshToken: string;
 };
 
-async function rawRequest(url: string, init?: RequestInit) {
+const envApiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '');
+const vercelFallback =
+  typeof window !== 'undefined' && window.location.hostname.endsWith('vercel.app')
+    ? 'https://api-five-omega-67.vercel.app'
+    : '/api';
+const apiBaseUrl = envApiBase || vercelFallback;
+
+function buildUrl(path: string) {
+  return `${apiBaseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
+async function rawRequest(path: string, init?: RequestInit) {
   const accessToken = authStorage.getAccessToken();
 
-  return fetch(url, {
+  return fetch(buildUrl(path), {
     ...init,
     headers: {
       'Content-Type': 'application/json',
@@ -28,7 +39,7 @@ async function refreshSession(): Promise<boolean> {
   const refreshToken = authStorage.getRefreshToken();
   if (!refreshToken) return false;
 
-  const res = await fetch('/api/auth/refresh', {
+  const res = await fetch(buildUrl('/auth/refresh'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refreshToken })
@@ -44,13 +55,13 @@ async function refreshSession(): Promise<boolean> {
   return true;
 }
 
-async function request<T>(url: string, init?: RequestInit): Promise<T> {
-  let res = await rawRequest(url, init);
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  let res = await rawRequest(path, init);
 
   if (res.status === 401) {
     const refreshed = await refreshSession();
     if (refreshed) {
-      res = await rawRequest(url, init);
+      res = await rawRequest(path, init);
     }
   }
 
@@ -67,21 +78,21 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  getHealth: () => request<HealthResponse>('/api/health'),
+  getHealth: () => request<HealthResponse>('/health'),
   register: (payload: { email: string; password: string }) =>
-    request<AuthResponse>('/api/auth/register', {
+    request<AuthResponse>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(payload)
     }),
   login: (payload: { email: string; password: string }) =>
-    request<AuthResponse>('/api/auth/login', {
+    request<AuthResponse>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(payload)
     }),
   logout: () =>
-    request<void>('/api/auth/logout', {
+    request<void>('/auth/logout', {
       method: 'POST',
       body: JSON.stringify({ refreshToken: authStorage.getRefreshToken() })
     }),
-  me: () => request<{ user: { sub: string; email: string } }>('/api/auth/me')
+  me: () => request<{ user: { sub: string; email: string } }>('/auth/me')
 };
