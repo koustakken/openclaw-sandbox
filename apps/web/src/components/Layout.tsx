@@ -1,11 +1,11 @@
-import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { api } from '../shared/api';
 import { authStorage } from '../shared/authStorage';
+import { AppHeader } from './AppHeader';
 import css from './Layout.module.css';
 
 export function Layout() {
   const navigate = useNavigate();
-  const isLoggedIn = Boolean(authStorage.getAccessToken());
 
   const logout = async () => {
     try {
@@ -20,32 +20,7 @@ export function Layout() {
 
   return (
     <main className={css.page}>
-      <header className={css.header}>
-        <strong>PowerHub</strong>
-        <nav className={css.nav}>
-          <Link className={css.link} to="/">
-            Home
-          </Link>
-          <Link className={css.link} to="/health">
-            Health
-          </Link>
-          <Link className={css.link} to="/login">
-            Login
-          </Link>
-          <Link className={css.link} to="/register">
-            Register
-          </Link>
-          <Link className={css.link} to="/profile">
-            Profile
-          </Link>
-          {isLoggedIn && (
-            <button type="button" onClick={logout} className={css.button}>
-              Logout
-            </button>
-          )}
-        </nav>
-      </header>
-
+      <AppHeader onLogout={logout} />
       <section className={css.container}>
         <Outlet />
       </section>

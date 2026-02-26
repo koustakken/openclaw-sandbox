@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Field } from '../components/ui/Field';
 import { Notification } from '../components/ui/Notification';
-import { Typography } from '../components/ui/Typography';
 import { api } from '../shared/api';
 import { authStorage } from '../shared/authStorage';
 import css from './AuthForm.module.css';
@@ -32,44 +31,45 @@ export function RegisterPage() {
 
   return (
     <section className={css.section}>
-      <div className={css.card}>
-        <Typography as="h2" variant="h2">
-          Register
-        </Typography>
+      <div className={css.shell}>
+        <div className={css.logo}>🏋️</div>
+        <h1 className={css.title}>Create your account</h1>
 
-        <form onSubmit={onSubmit} className={css.form}>
-          <Field
-            label="Email"
-            type="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+        <div className={css.card}>
+          <form onSubmit={onSubmit} className={css.form}>
+            <Field
+              label="Email"
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
 
-          <Field
-            label="Password"
-            type="password"
-            placeholder="At least 8 characters"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={8}
-          />
+            <Field
+              label="Password"
+              type="password"
+              placeholder="At least 8 characters"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={8}
+            />
 
-          <Button type="submit" variant="primary">
-            Create account
-          </Button>
-        </form>
+            <Button type="submit" variant="primary">
+              Create account
+            </Button>
+          </form>
 
-        {error && <Notification tone="error">{error}</Notification>}
+          {error && <Notification tone="error">{error}</Notification>}
+        </div>
 
-        <Typography variant="muted">
+        <div className={css.switchCard}>
           Already have an account?{' '}
           <Link className={css.link} to="/login">
             Sign in
           </Link>
-        </Typography>
+        </div>
       </div>
     </section>
   );
