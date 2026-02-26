@@ -23,7 +23,7 @@ authRouter.post('/register', async (req, res) => {
     return res.status(201).json({
       user,
       accessToken: signAccessToken(user),
-      refreshToken: issueRefreshToken(user)
+      refreshToken: await issueRefreshToken(user)
     });
   } catch (err: unknown) {
     if (err instanceof z.ZodError) {
@@ -46,7 +46,7 @@ authRouter.post('/login', async (req, res) => {
     return res.json({
       user,
       accessToken: signAccessToken(user),
-      refreshToken: issueRefreshToken(user)
+      refreshToken: await issueRefreshToken(user)
     });
   } catch (err: unknown) {
     if (err instanceof z.ZodError) {
@@ -61,10 +61,10 @@ authRouter.post('/login', async (req, res) => {
   }
 });
 
-authRouter.post('/refresh', (req, res) => {
+authRouter.post('/refresh', async (req, res) => {
   try {
     const { refreshToken } = parseRefreshInput(req.body);
-    const rotated = rotateRefreshToken(refreshToken);
+    const rotated = await rotateRefreshToken(refreshToken);
     return res.json(rotated);
   } catch (err: unknown) {
     if (err instanceof z.ZodError) {
@@ -79,10 +79,10 @@ authRouter.post('/refresh', (req, res) => {
   }
 });
 
-authRouter.post('/logout', (req, res) => {
+authRouter.post('/logout', async (req, res) => {
   try {
     const { refreshToken } = parseRefreshInput(req.body);
-    revokeRefreshToken(refreshToken);
+    await revokeRefreshToken(refreshToken);
     return res.status(204).send();
   } catch (err: unknown) {
     if (err instanceof z.ZodError) {

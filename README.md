@@ -24,8 +24,11 @@ By default:
 - API: copy `apps/api/.env.example` to `apps/api/.env`
 - Web: copy `apps/web/.env.example` to `apps/web/.env`
 
-API uses SQLite for auth persistence (`DATABASE_PATH`, default `./data/auth.db`).
-For web, set `VITE_API_BASE_URL` (`/api` in local dev, full backend URL in production).
+API uses persistent database for auth:
+
+- production: `DATABASE_URL` (Postgres)
+- local fallback: `DATABASE_PATH` (SQLite, default `./data/auth.db`)
+  For web, set `VITE_API_BASE_URL` (`/api` in local dev, full backend URL in production).
 
 ## Scripts
 
