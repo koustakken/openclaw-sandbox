@@ -1,6 +1,10 @@
-import type { HealthResponse } from '@packages/shared';
 import type { AuthResponse } from '../types/auth';
 import { authStorage } from './authStorage';
+
+type HealthResponse = {
+  ok: boolean;
+  service: string;
+};
 
 type RefreshResponse = {
   accessToken: string;

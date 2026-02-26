@@ -1,16 +1,20 @@
 {
-  "extends": "../../packages/tsconfig/base.json",
+  "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "sourceMap": true,
     "outDir": "dist",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "target": "ES2022",
     "lib": ["ES2022"],
     "types": ["node"],
-    "baseUrl": ".",
-    "paths": {
-      "@packages/shared": ["../../packages/shared/src"]
-    }
+    "baseUrl": "."
   },
-  "include": ["src"]
+  "include": ["src", "api"]
 }
