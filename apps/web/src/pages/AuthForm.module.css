@@ -1,0 +1,14 @@
+.section {
+  display: grid;
+  gap: 12px;
+}
+
+.form {
+  display: grid;
+  gap: 12px;
+  max-width: 360px;
+}
+
+.error {
+  color: var(--color-danger);
+}

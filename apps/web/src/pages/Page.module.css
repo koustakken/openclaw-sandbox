@@ -1,0 +1,8 @@
+.section {
+  display: grid;
+  gap: 12px;
+}
+
+.error {
+  color: var(--color-danger);
+}
