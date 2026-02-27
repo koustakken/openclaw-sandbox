@@ -20,6 +20,8 @@ type UserProfile = {
   city: string;
   weightCategory: string;
   currentWeight: number;
+  followers: number;
+  following: number;
 };
 
 type Workout = {
@@ -139,6 +141,8 @@ export function HomePage() {
           city={profile?.city ?? ''}
           weightCategory={profile?.weightCategory ?? ''}
           currentWeight={profile?.currentWeight ?? 0}
+          followers={profile?.followers ?? 0}
+          following={profile?.following ?? 0}
         />
 
         <div className={css.main}>

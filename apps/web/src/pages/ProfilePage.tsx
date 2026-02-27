@@ -16,6 +16,8 @@ type ProfileModel = {
   city: string;
   weightCategory: string;
   currentWeight: number;
+  followers: number;
+  following: number;
 };
 
 export function ProfilePage() {
@@ -29,11 +31,16 @@ export function ProfilePage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [followUsername, setFollowUsername] = useState('');
+  const [followingList, setFollowingList] = useState<Array<{ username: string; email: string }>>(
+    []
+  );
 
   const load = async () => {
     try {
-      const data = await api.getProfile();
+      const [data, follows] = await Promise.all([api.getProfile(), api.listFollowing()]);
       setProfile(data);
+      setFollowingList(follows.map((f) => ({ username: f.username, email: f.email })));
       setError(null);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load profile');
@@ -151,6 +158,54 @@ export function ProfilePage() {
               >
                 Save username
               </Button>
+            </div>
+
+            <div className={css.section}>
+              <h3>Subscriptions</h3>
+              <p>
+                Followers: <strong>{profile.followers}</strong> · Following:{' '}
+                <strong>{profile.following}</strong>
+              </p>
+              <div className={css.row}>
+                <Field
+                  label="Username to follow"
+                  value={followUsername}
+                  onChange={(e) => setFollowUsername(e.target.value)}
+                />
+                <Button
+                  onClick={async () => {
+                    if (!followUsername.trim()) return;
+                    await api.followUser(followUsername.trim());
+                    setFollowUsername('');
+                    await load();
+                    setSaved('Subscription updated');
+                  }}
+                >
+                  Follow
+                </Button>
+              </div>
+              {followingList.length > 0 && (
+                <div>
+                  {followingList.map((u) => (
+                    <div
+                      key={u.email}
+                      style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}
+                    >
+                      <span>@{u.username}</span>
+                      <Button
+                        size="sm"
+                        onClick={async () => {
+                          await api.unfollowUser(u.username);
+                          await load();
+                          setSaved('Unfollowed');
+                        }}
+                      >
+                        Unfollow
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className={css.section}>

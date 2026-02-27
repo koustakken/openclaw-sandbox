@@ -175,6 +175,8 @@ export const api = {
       city: string;
       weightCategory: string;
       currentWeight: number;
+      followers: number;
+      following: number;
     }>('/training/profile'),
   updateProfile: (payload: {
     username?: string;
@@ -187,5 +189,12 @@ export const api = {
   }) => request('/training/profile', { method: 'PUT', body: JSON.stringify(payload) }),
   changePassword: (payload: { currentPassword: string; newPassword: string }) =>
     request('/auth/account/password', { method: 'PUT', body: JSON.stringify(payload) }),
-  deleteAccount: () => request('/auth/account', { method: 'DELETE' })
+  deleteAccount: () => request('/auth/account', { method: 'DELETE' }),
+  listFollowing: () =>
+    request<Array<{ username: string; email: string; firstName: string; lastName: string }>>(
+      '/training/follows'
+    ),
+  followUser: (username: string) =>
+    request('/training/follows', { method: 'POST', body: JSON.stringify({ username }) }),
+  unfollowUser: (username: string) => request(`/training/follows/${username}`, { method: 'DELETE' })
 };

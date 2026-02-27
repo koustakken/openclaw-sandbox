@@ -105,6 +105,13 @@ async function ensureSchema() {
       comment TEXT NOT NULL,
       created_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS user_follows (
+      id TEXT PRIMARY KEY,
+      follower_id TEXT NOT NULL,
+      following_id TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
   `;
 
   const pgSql = `
@@ -176,6 +183,14 @@ async function ensureSchema() {
       athlete_id TEXT NOT NULL,
       comment TEXT NOT NULL,
       created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS user_follows (
+      id TEXT PRIMARY KEY,
+      follower_id TEXT NOT NULL,
+      following_id TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      UNIQUE(follower_id, following_id)
     );
   `;
 
@@ -261,6 +276,35 @@ async function ensureUserProfile(userId: string) {
   }
 }
 
+async function getFollowCounts(userId: string) {
+  if (pool) {
+    const [followers, following] = await Promise.all([
+      pool.query<{ count: string }>(
+        'SELECT COUNT(*)::text as count FROM user_follows WHERE following_id = $1',
+        [userId]
+      ),
+      pool.query<{ count: string }>(
+        'SELECT COUNT(*)::text as count FROM user_follows WHERE follower_id = $1',
+        [userId]
+      )
+    ]);
+
+    return {
+      followers: Number(followers.rows[0]?.count ?? 0),
+      following: Number(following.rows[0]?.count ?? 0)
+    };
+  }
+
+  const followers = db
+    .prepare('SELECT COUNT(*) as count FROM user_follows WHERE following_id = ?')
+    .get(userId) as { count: number };
+  const following = db
+    .prepare('SELECT COUNT(*) as count FROM user_follows WHERE follower_id = ?')
+    .get(userId) as { count: number };
+
+  return { followers: followers.count, following: following.count };
+}
+
 export async function getUserProfile(userId: string, email: string) {
   await ensureUserProfile(userId);
 
@@ -281,6 +325,8 @@ export async function getUserProfile(userId: string, email: string) {
         }
       | undefined;
 
+    const counts = await getFollowCounts(userId);
+
     return {
       email,
       username: row?.username ?? email.split('@')[0] ?? '',
@@ -289,7 +335,9 @@ export async function getUserProfile(userId: string, email: string) {
       contacts: row?.contacts ?? '',
       city: row?.city ?? '',
       weightCategory: row?.weight_category ?? '',
-      currentWeight: Number(row?.current_weight ?? 0)
+      currentWeight: Number(row?.current_weight ?? 0),
+      followers: counts.followers,
+      following: counts.following
     };
   }
 
@@ -309,6 +357,8 @@ export async function getUserProfile(userId: string, email: string) {
       }
     | undefined;
 
+  const counts = await getFollowCounts(userId);
+
   return {
     email,
     username: row?.username ?? email.split('@')[0] ?? '',
@@ -317,13 +367,32 @@ export async function getUserProfile(userId: string, email: string) {
     contacts: row?.contacts ?? '',
     city: row?.city ?? '',
     weightCategory: row?.weight_category ?? '',
-    currentWeight: Number(row?.current_weight ?? 0)
+    currentWeight: Number(row?.current_weight ?? 0),
+    followers: counts.followers,
+    following: counts.following
   };
 }
 
 export async function updateUserProfile(userId: string, email: string, input: UserProfileInput) {
   await ensureUserProfile(userId);
   const now = new Date().toISOString();
+
+  if (input.username && input.username.trim()) {
+    const uname = input.username.trim();
+
+    if (pool) {
+      const exists = await pool.query<{ user_id: string }>(
+        'SELECT user_id FROM user_profiles WHERE username = $1 AND user_id <> $2 LIMIT 1',
+        [uname, userId]
+      );
+      if (exists.rows[0]?.user_id) throw new Error('USERNAME_TAKEN');
+    } else {
+      const exists = db
+        .prepare('SELECT user_id FROM user_profiles WHERE username = ? AND user_id <> ?')
+        .get(uname, userId) as { user_id: string } | undefined;
+      if (exists?.user_id) throw new Error('USERNAME_TAKEN');
+    }
+  }
 
   if (pool) {
     await pool.query(
@@ -781,4 +850,130 @@ export async function addPlanComment(
     'INSERT INTO plan_comments (id, plan_id, coach_id, athlete_id, comment, created_at) VALUES (?, ?, ?, ?, ?, ?)'
   ).run(id, planId, coachId, athleteId, comment, createdAt);
   return { id, planId, coachId, athleteId, comment, createdAt };
+}
+
+async function findUserIdByUsername(username: string): Promise<string | null> {
+  const login = username.trim();
+  if (!login) return null;
+
+  if (pool) {
+    const byProfile = await pool.query<{ user_id: string }>(
+      'SELECT user_id FROM user_profiles WHERE username = $1 LIMIT 1',
+      [login]
+    );
+    if (byProfile.rows[0]?.user_id) return byProfile.rows[0].user_id;
+
+    const byEmail = await pool.query<{ id: string }>(
+      'SELECT id FROM users WHERE email = $1 LIMIT 1',
+      [login]
+    );
+    return byEmail.rows[0]?.id ?? null;
+  }
+
+  const p = db.prepare('SELECT user_id FROM user_profiles WHERE username = ?').get(login) as
+    | { user_id: string }
+    | undefined;
+  if (p?.user_id) return p.user_id;
+
+  const e = db.prepare('SELECT id FROM users WHERE email = ?').get(login) as
+    | { id: string }
+    | undefined;
+  return e?.id ?? null;
+}
+
+export async function followUser(followerId: string, targetUsername: string) {
+  await ensureSchema();
+  const followingId = await findUserIdByUsername(targetUsername);
+  if (!followingId) throw new Error('USER_NOT_FOUND');
+  if (followingId === followerId) throw new Error('CANNOT_FOLLOW_SELF');
+
+  const id = crypto.randomUUID();
+  const createdAt = new Date().toISOString();
+
+  if (pool) {
+    await pool.query(
+      'INSERT INTO user_follows (id, follower_id, following_id, created_at) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING',
+      [id, followerId, followingId, createdAt]
+    );
+    return;
+  }
+
+  const exists = db
+    .prepare('SELECT id FROM user_follows WHERE follower_id = ? AND following_id = ?')
+    .get(followerId, followingId);
+  if (!exists) {
+    db.prepare(
+      'INSERT INTO user_follows (id, follower_id, following_id, created_at) VALUES (?, ?, ?, ?)'
+    ).run(id, followerId, followingId, createdAt);
+  }
+}
+
+export async function unfollowUser(followerId: string, targetUsername: string) {
+  await ensureSchema();
+  const followingId = await findUserIdByUsername(targetUsername);
+  if (!followingId) return;
+
+  if (pool) {
+    await pool.query('DELETE FROM user_follows WHERE follower_id = $1 AND following_id = $2', [
+      followerId,
+      followingId
+    ]);
+    return;
+  }
+
+  db.prepare('DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?').run(
+    followerId,
+    followingId
+  );
+}
+
+export async function listFollowing(followerId: string) {
+  await ensureSchema();
+
+  if (pool) {
+    const result = await pool.query<{
+      username: string;
+      email: string;
+      first_name: string;
+      last_name: string;
+    }>(
+      `SELECT COALESCE(p.username, '') as username, u.email, COALESCE(p.first_name, '') as first_name, COALESCE(p.last_name, '') as last_name
+       FROM user_follows f
+       JOIN users u ON u.id = f.following_id
+       LEFT JOIN user_profiles p ON p.user_id = f.following_id
+       WHERE f.follower_id = $1
+       ORDER BY f.created_at DESC`,
+      [followerId]
+    );
+
+    return result.rows.map((r) => ({
+      username: r.username || r.email.split('@')[0],
+      email: r.email,
+      firstName: r.first_name,
+      lastName: r.last_name
+    }));
+  }
+
+  const rows = db
+    .prepare(
+      `SELECT COALESCE(p.username, '') as username, u.email as email, COALESCE(p.first_name, '') as first_name, COALESCE(p.last_name, '') as last_name
+       FROM user_follows f
+       JOIN users u ON u.id = f.following_id
+       LEFT JOIN user_profiles p ON p.user_id = f.following_id
+       WHERE f.follower_id = ?
+       ORDER BY f.created_at DESC`
+    )
+    .all(followerId) as Array<{
+    username: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+  }>;
+
+  return rows.map((r) => ({
+    username: r.username || r.email.split('@')[0],
+    email: r.email,
+    firstName: r.first_name,
+    lastName: r.last_name
+  }));
 }

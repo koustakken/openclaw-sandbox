@@ -5,6 +5,7 @@ import {
   addAthlete,
   addPlanComment,
   createExercise,
+  followUser,
   createPlan,
   createWorkout,
   deletePlan,
@@ -12,8 +13,10 @@ import {
   getDashboard,
   getUserProfile,
   listExercises,
+  listFollowing,
   listPlans,
   listWorkouts,
+  unfollowUser,
   updatePlan,
   updateUserProfile,
   updateWorkout
@@ -61,11 +64,53 @@ trainingRouter.get('/profile', async (req: AuthenticatedRequest, res) => {
 });
 
 trainingRouter.put('/profile', async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.auth?.sub;
+    const email = req.auth?.email;
+    if (!userId || !email) return res.status(401).json({ message: 'Unauthorized' });
+    const payload = profileSchema.parse(req.body);
+    return res.json(await updateUserProfile(userId, email, payload));
+  } catch (err: unknown) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Invalid input', issues: err.issues });
+    }
+    if (err instanceof Error && err.message === 'USERNAME_TAKEN') {
+      return res.status(409).json({ message: 'Username already taken' });
+    }
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+trainingRouter.get('/follows', async (req: AuthenticatedRequest, res) => {
   const userId = req.auth?.sub;
-  const email = req.auth?.email;
-  if (!userId || !email) return res.status(401).json({ message: 'Unauthorized' });
-  const payload = profileSchema.parse(req.body);
-  return res.json(await updateUserProfile(userId, email, payload));
+  if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+  return res.json(await listFollowing(userId));
+});
+
+trainingRouter.post('/follows', async (req: AuthenticatedRequest, res) => {
+  const userId = req.auth?.sub;
+  if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+  const username = z.string().min(1).parse(req.body?.username);
+
+  try {
+    await followUser(userId, username);
+    return res.status(201).json({ ok: true });
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === 'USER_NOT_FOUND') {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    if (err instanceof Error && err.message === 'CANNOT_FOLLOW_SELF') {
+      return res.status(400).json({ message: 'Cannot follow yourself' });
+    }
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+trainingRouter.delete('/follows/:username', async (req: AuthenticatedRequest, res) => {
+  const userId = req.auth?.sub;
+  if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+  await unfollowUser(userId, req.params.username);
+  return res.status(204).send();
 });
 
 trainingRouter.get('/exercises', async (req: AuthenticatedRequest, res) => {
