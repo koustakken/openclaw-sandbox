@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Notification } from '../components/ui/Notification';
 import { api } from '../shared/api';
 import css from './HomePage.module.css';
@@ -93,7 +94,9 @@ export function HomePage() {
           <div>
             <strong>Актуальный вес:</strong> {profile?.currentWeight ?? 0} кг
           </div>
-          <div className={css.muted}>Редактирование доступно на вкладке Profile</div>
+          <Link to="/profile" className={css.editProfile}>
+            Edit profile
+          </Link>
         </aside>
 
         <div className={css.main}>

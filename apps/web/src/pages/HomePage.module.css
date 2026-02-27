@@ -27,10 +27,7 @@
 }
 
 .sidebarCard {
-  border: 1px solid #d0d7de;
-  border-radius: 8px;
-  background: #fff;
-  padding: 16px;
+  padding: 8px 2px;
   display: grid;
   gap: 10px;
 }
@@ -85,6 +82,20 @@
 .muted {
   color: #57606a;
   font-size: 13px;
+}
+
+.editProfile {
+  margin-top: 8px;
+  width: 100%;
+  border: 1px solid #d0d7de;
+  background: #f6f8fa;
+  color: #24292f;
+  border-radius: 6px;
+  text-align: center;
+  padding: 7px 10px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .activityColumn {
