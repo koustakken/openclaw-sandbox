@@ -3,6 +3,45 @@
   gap: 16px;
 }
 
+.layout {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 280px 1fr;
+  align-items: start;
+}
+
+@media (max-width: 980px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sidebarCard {
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  background: #fff;
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #24292f;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 22px;
+}
+
+.main {
+  display: grid;
+  gap: 16px;
+}
+
 .grid {
   display: grid;
   gap: 12px;
