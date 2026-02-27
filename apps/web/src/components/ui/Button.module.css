@@ -8,6 +8,12 @@
   font-weight: 500;
 }
 
+.small {
+  padding: 5px 12px;
+  font-size: 12px;
+  min-height: 30px;
+}
+
 .button:hover {
   background: #f3f4f6;
 }
