@@ -28,6 +28,7 @@ export function ProfilePage() {
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState('');
 
   const load = async () => {
     try {
@@ -180,9 +181,21 @@ export function ProfilePage() {
 
             <div className={`${css.section} ${css.danger}`}>
               <h3>Delete account</h3>
-              <p>Это действие необратимо.</p>
+              <p>
+                Это действие необратимо. Введи <strong>DELETE</strong> для подтверждения.
+              </p>
+              <Field
+                label="Confirmation"
+                value={deleteConfirm}
+                onChange={(e) => setDeleteConfirm(e.target.value)}
+                placeholder="Type DELETE"
+              />
               <Button
                 onClick={async () => {
+                  if (deleteConfirm !== 'DELETE') {
+                    setSaved('Введите DELETE для подтверждения удаления');
+                    return;
+                  }
                   await api.deleteAccount();
                   authStorage.clearSession();
                   navigate('/login');
