@@ -168,6 +168,7 @@ export const api = {
   getProfile: () =>
     request<{
       email: string;
+      username: string;
       firstName: string;
       lastName: string;
       contacts: string;
@@ -176,11 +177,15 @@ export const api = {
       currentWeight: number;
     }>('/training/profile'),
   updateProfile: (payload: {
+    username?: string;
     firstName?: string;
     lastName?: string;
     contacts?: string;
     city?: string;
     weightCategory?: string;
     currentWeight?: number;
-  }) => request('/training/profile', { method: 'PUT', body: JSON.stringify(payload) })
+  }) => request('/training/profile', { method: 'PUT', body: JSON.stringify(payload) }),
+  changePassword: (payload: { currentPassword: string; newPassword: string }) =>
+    request('/auth/account/password', { method: 'PUT', body: JSON.stringify(payload) }),
+  deleteAccount: () => request('/auth/account', { method: 'DELETE' })
 };

@@ -13,6 +13,7 @@ type DashboardData = {
 
 type UserProfile = {
   email: string;
+  username: string;
   firstName: string;
   lastName: string;
   contacts: string;
@@ -131,6 +132,7 @@ export function HomePage() {
       <div className={css.layout}>
         <UserSidebarCard
           email={profile?.email ?? ''}
+          username={profile?.username ?? ''}
           firstName={profile?.firstName ?? ''}
           lastName={profile?.lastName ?? ''}
           contacts={profile?.contacts ?? ''}

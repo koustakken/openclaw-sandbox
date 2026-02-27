@@ -14,6 +14,7 @@ type WeeklyLiftBest = { squat: number; bench: number; deadlift: number };
 
 type PlanInput = { title: string; content: string; status?: 'draft' | 'active' | 'archived' };
 type UserProfileInput = {
+  username?: string;
   firstName?: string;
   lastName?: string;
   contacts?: string;
@@ -86,6 +87,7 @@ async function ensureSchema() {
 
     CREATE TABLE IF NOT EXISTS user_profiles (
       user_id TEXT PRIMARY KEY,
+      username TEXT NOT NULL DEFAULT '',
       first_name TEXT NOT NULL DEFAULT '',
       last_name TEXT NOT NULL DEFAULT '',
       contacts TEXT NOT NULL DEFAULT '',
@@ -157,6 +159,7 @@ async function ensureSchema() {
 
     CREATE TABLE IF NOT EXISTS user_profiles (
       user_id TEXT PRIMARY KEY,
+      username TEXT NOT NULL DEFAULT '',
       first_name TEXT NOT NULL DEFAULT '',
       last_name TEXT NOT NULL DEFAULT '',
       contacts TEXT NOT NULL DEFAULT '',
@@ -179,6 +182,7 @@ async function ensureSchema() {
   if (pool) {
     await pool.query(pgSql);
     await pool.query('ALTER TABLE workouts ADD COLUMN IF NOT EXISTS plan_id TEXT');
+    await pool.query("ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS username TEXT DEFAULT ''");
     await pool.query(
       'ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS current_weight DOUBLE PRECISION DEFAULT 0'
     );
@@ -186,6 +190,11 @@ async function ensureSchema() {
     db.exec(sqliteSql);
     try {
       db.exec('ALTER TABLE workouts ADD COLUMN plan_id TEXT');
+    } catch {
+      // already exists
+    }
+    try {
+      db.exec("ALTER TABLE user_profiles ADD COLUMN username TEXT NOT NULL DEFAULT ''");
     } catch {
       // already exists
     }
@@ -236,8 +245,8 @@ async function ensureUserProfile(userId: string) {
 
   if (pool) {
     await pool.query(
-      `INSERT INTO user_profiles (user_id, first_name, last_name, contacts, city, weight_category, current_weight, updated_at)
-       VALUES ($1, '', '', '', '', '', 0, $2)
+      `INSERT INTO user_profiles (user_id, username, first_name, last_name, contacts, city, weight_category, current_weight, updated_at)
+       VALUES ($1, '', '', '', '', '', '', 0, $2)
        ON CONFLICT (user_id) DO NOTHING`,
       [userId, now]
     );
@@ -247,8 +256,8 @@ async function ensureUserProfile(userId: string) {
   const exists = db.prepare('SELECT user_id FROM user_profiles WHERE user_id = ?').get(userId);
   if (!exists) {
     db.prepare(
-      'INSERT INTO user_profiles (user_id, first_name, last_name, contacts, city, weight_category, current_weight, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(userId, '', '', '', '', '', 0, now);
+      'INSERT INTO user_profiles (user_id, username, first_name, last_name, contacts, city, weight_category, current_weight, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(userId, '', '', '', '', '', '', 0, now);
   }
 }
 
@@ -257,11 +266,12 @@ export async function getUserProfile(userId: string, email: string) {
 
   if (pool) {
     const result = await pool.query(
-      'SELECT first_name, last_name, contacts, city, weight_category, current_weight FROM user_profiles WHERE user_id = $1 LIMIT 1',
+      'SELECT username, first_name, last_name, contacts, city, weight_category, current_weight FROM user_profiles WHERE user_id = $1 LIMIT 1',
       [userId]
     );
     const row = result.rows[0] as
       | {
+          username: string;
           first_name: string;
           last_name: string;
           contacts: string;
@@ -273,6 +283,7 @@ export async function getUserProfile(userId: string, email: string) {
 
     return {
       email,
+      username: row?.username ?? email.split('@')[0] ?? '',
       firstName: row?.first_name ?? '',
       lastName: row?.last_name ?? '',
       contacts: row?.contacts ?? '',
@@ -284,10 +295,11 @@ export async function getUserProfile(userId: string, email: string) {
 
   const row = db
     .prepare(
-      'SELECT first_name, last_name, contacts, city, weight_category, current_weight FROM user_profiles WHERE user_id = ?'
+      'SELECT username, first_name, last_name, contacts, city, weight_category, current_weight FROM user_profiles WHERE user_id = ?'
     )
     .get(userId) as
     | {
+        username: string;
         first_name: string;
         last_name: string;
         contacts: string;
@@ -299,6 +311,7 @@ export async function getUserProfile(userId: string, email: string) {
 
   return {
     email,
+    username: row?.username ?? email.split('@')[0] ?? '',
     firstName: row?.first_name ?? '',
     lastName: row?.last_name ?? '',
     contacts: row?.contacts ?? '',
@@ -315,9 +328,10 @@ export async function updateUserProfile(userId: string, email: string, input: Us
   if (pool) {
     await pool.query(
       `UPDATE user_profiles
-       SET first_name = $1, last_name = $2, contacts = $3, city = $4, weight_category = $5, current_weight = $6, updated_at = $7
-       WHERE user_id = $8`,
+       SET username = $1, first_name = $2, last_name = $3, contacts = $4, city = $5, weight_category = $6, current_weight = $7, updated_at = $8
+       WHERE user_id = $9`,
       [
+        input.username ?? '',
         input.firstName ?? '',
         input.lastName ?? '',
         input.contacts ?? '',
@@ -332,8 +346,9 @@ export async function updateUserProfile(userId: string, email: string, input: Us
   }
 
   db.prepare(
-    'UPDATE user_profiles SET first_name = ?, last_name = ?, contacts = ?, city = ?, weight_category = ?, current_weight = ?, updated_at = ? WHERE user_id = ?'
+    'UPDATE user_profiles SET username = ?, first_name = ?, last_name = ?, contacts = ?, city = ?, weight_category = ?, current_weight = ?, updated_at = ? WHERE user_id = ?'
   ).run(
+    input.username ?? '',
     input.firstName ?? '',
     input.lastName ?? '',
     input.contacts ?? '',

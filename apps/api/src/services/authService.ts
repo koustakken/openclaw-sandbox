@@ -289,3 +289,48 @@ export async function revokeRefreshToken(refreshToken: string) {
 
   db.prepare('DELETE FROM refresh_tokens WHERE token_hash = ?').run(tokenHash);
 }
+
+async function findUserById(userId: string): Promise<UserRow | undefined> {
+  if (pool) {
+    await ensurePgSchema();
+    const result = await pool.query<UserRow>(
+      'SELECT id, email, password_hash, created_at FROM users WHERE id = $1 LIMIT 1',
+      [userId]
+    );
+    return result.rows[0];
+  }
+
+  return db
+    .prepare('SELECT id, email, password_hash, created_at FROM users WHERE id = ?')
+    .get(userId) as UserRow | undefined;
+}
+
+export async function changePassword(userId: string, currentPassword: string, newPassword: string) {
+  const row = await findUserById(userId);
+  if (!row) throw new Error('USER_NOT_FOUND');
+
+  const valid = await bcrypt.compare(currentPassword, row.password_hash);
+  if (!valid) throw new Error('INVALID_CREDENTIALS');
+
+  const nextHash = await bcrypt.hash(newPassword, 10);
+
+  if (pool) {
+    await ensurePgSchema();
+    await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [nextHash, userId]);
+    return;
+  }
+
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(nextHash, userId);
+}
+
+export async function deleteAccount(userId: string) {
+  if (pool) {
+    await ensurePgSchema();
+    await pool.query('DELETE FROM refresh_tokens WHERE user_id = $1', [userId]);
+    await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+    return;
+  }
+
+  db.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').run(userId);
+  db.prepare('DELETE FROM users WHERE id = ?').run(userId);
+}

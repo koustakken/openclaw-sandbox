@@ -4,6 +4,7 @@ import css from './UserSidebarCard.module.css';
 
 type Props = {
   email: string;
+  username?: string;
   firstName: string;
   lastName: string;
   contacts: string;
@@ -16,6 +17,7 @@ type Props = {
 
 export function UserSidebarCard({
   email,
+  username,
   firstName,
   lastName,
   contacts,
@@ -27,7 +29,7 @@ export function UserSidebarCard({
 }: Props) {
   const initials = (email.split('@')[0] ?? 'pl').slice(0, 2).toUpperCase();
   const displayName = `${firstName} ${lastName}`.trim() || 'Powerlifter';
-  const login = email.split('@')[0] ?? email;
+  const login = username || email.split('@')[0] || email;
 
   return (
     <aside className={css.card}>

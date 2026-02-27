@@ -38,6 +38,7 @@ const workoutSchema = z.object({
 });
 
 const profileSchema = z.object({
+  username: z.string().optional(),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   contacts: z.string().optional(),

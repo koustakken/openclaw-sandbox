@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import {
+  changePassword,
+  deleteAccount,
   issueRefreshToken,
   loginUser,
   parseLoginInput,
@@ -99,4 +101,38 @@ authRouter.post('/logout', async (req, res) => {
 
 authRouter.get('/me', requireAuth, (req: AuthenticatedRequest, res) => {
   return res.json({ user: req.auth });
+});
+
+authRouter.put('/account/password', requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.auth?.sub;
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+
+    const payload = z
+      .object({ currentPassword: z.string().min(1), newPassword: z.string().min(8) })
+      .parse(req.body);
+
+    await changePassword(userId, payload.currentPassword, payload.newPassword);
+    return res.status(204).send();
+  } catch (err: unknown) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Invalid input', issues: err.issues });
+    }
+    if (err instanceof Error && err.message === 'INVALID_CREDENTIALS') {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+authRouter.delete('/account', requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.auth?.sub;
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+
+    await deleteAccount(userId);
+    return res.status(204).send();
+  } catch {
+    return res.status(500).json({ message: 'Internal server error' });
+  }
 });
