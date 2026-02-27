@@ -24,21 +24,25 @@ type UserProfile = {
 const mockFollowingActivity = [
   {
     id: '1',
+    icon: '🏋️',
     title: 'Илья Смирнов закрыл тренировку: Присед 5x5',
     meta: '2 часа назад · План: Base Strength'
   },
   {
     id: '2',
+    icon: '📝',
     title: 'Анна Ковалева обновила план Peak Week',
     meta: 'Вчера · версия v4'
   },
   {
     id: '3',
+    icon: '🔥',
     title: 'Максим Орлов поставил PR в тяге: 245 кг',
     meta: '2 дня назад · Становая тяга'
   },
   {
     id: '4',
+    icon: '💬',
     title: 'Екатерина Л. добавила комментарий к плану подопечного',
     meta: '3 дня назад · Coach review'
   }
@@ -121,12 +125,21 @@ export function HomePage() {
 
         <aside className={css.activityColumn}>
           <div className={css.activityHeader}>Активность подписок</div>
-          {mockFollowingActivity.map((item) => (
-            <div className={css.activityItem} key={item.id}>
-              <div className={css.activityTitle}>{item.title}</div>
-              <div className={css.activityMeta}>{item.meta}</div>
-            </div>
-          ))}
+          <div className={css.activityMonth}>Февраль 2026</div>
+          <div className={css.timeline}>
+            {mockFollowingActivity.map((item) => (
+              <div className={css.activityItem} key={item.id}>
+                <div className={css.activityIcon}>{item.icon}</div>
+                <div>
+                  <div className={css.activityTitle}>{item.title}</div>
+                  <div className={css.activityMeta}>{item.meta}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button type="button" className={css.showMore}>
+            Show more activity
+          </button>
         </aside>
       </div>
     </section>
