@@ -10,10 +10,12 @@ import {
   deletePlan,
   deleteWorkout,
   getDashboard,
+  getUserProfile,
   listExercises,
   listPlans,
   listWorkouts,
   updatePlan,
+  updateUserProfile,
   updateWorkout
 } from '../services/trainingService';
 
@@ -34,10 +36,33 @@ const workoutSchema = z.object({
   performedAt: z.string().optional()
 });
 
+const profileSchema = z.object({
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  contacts: z.string().optional(),
+  city: z.string().optional(),
+  weightCategory: z.string().optional()
+});
+
 trainingRouter.get('/dashboard', async (req: AuthenticatedRequest, res) => {
   const userId = req.auth?.sub;
   if (!userId) return res.status(401).json({ message: 'Unauthorized' });
   return res.json(await getDashboard(userId));
+});
+
+trainingRouter.get('/profile', async (req: AuthenticatedRequest, res) => {
+  const userId = req.auth?.sub;
+  const email = req.auth?.email;
+  if (!userId || !email) return res.status(401).json({ message: 'Unauthorized' });
+  return res.json(await getUserProfile(userId, email));
+});
+
+trainingRouter.put('/profile', async (req: AuthenticatedRequest, res) => {
+  const userId = req.auth?.sub;
+  const email = req.auth?.email;
+  if (!userId || !email) return res.status(401).json({ message: 'Unauthorized' });
+  const payload = profileSchema.parse(req.body);
+  return res.json(await updateUserProfile(userId, email, payload));
 });
 
 trainingRouter.get('/exercises', async (req: AuthenticatedRequest, res) => {

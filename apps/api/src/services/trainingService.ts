@@ -12,6 +12,13 @@ let schemaReady = false;
 type LiftStat = { exercise: string; bestWeight: number };
 
 type PlanInput = { title: string; content: string; status?: 'draft' | 'active' | 'archived' };
+type UserProfileInput = {
+  firstName?: string;
+  lastName?: string;
+  contacts?: string;
+  city?: string;
+  weightCategory?: string;
+};
 type WorkoutInput = {
   exercise: string;
   reps: number;
@@ -73,6 +80,16 @@ async function ensureSchema() {
       created_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS user_profiles (
+      user_id TEXT PRIMARY KEY,
+      first_name TEXT NOT NULL DEFAULT '',
+      last_name TEXT NOT NULL DEFAULT '',
+      contacts TEXT NOT NULL DEFAULT '',
+      city TEXT NOT NULL DEFAULT '',
+      weight_category TEXT NOT NULL DEFAULT '',
+      updated_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS plan_comments (
       id TEXT PRIMARY KEY,
       plan_id TEXT NOT NULL,
@@ -132,6 +149,16 @@ async function ensureSchema() {
       UNIQUE(coach_id, athlete_id)
     );
 
+    CREATE TABLE IF NOT EXISTS user_profiles (
+      user_id TEXT PRIMARY KEY,
+      first_name TEXT NOT NULL DEFAULT '',
+      last_name TEXT NOT NULL DEFAULT '',
+      contacts TEXT NOT NULL DEFAULT '',
+      city TEXT NOT NULL DEFAULT '',
+      weight_category TEXT NOT NULL DEFAULT '',
+      updated_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS plan_comments (
       id TEXT PRIMARY KEY,
       plan_id TEXT NOT NULL,
@@ -177,6 +204,117 @@ async function ensureBaseExercises(userId: string) {
       'INSERT INTO exercises (id, user_id, name, is_base, created_at) VALUES (?, ?, ?, ?, ?)'
     ).run(crypto.randomUUID(), userId, name, 1, new Date().toISOString());
   }
+}
+
+async function ensureUserProfile(userId: string) {
+  await ensureSchema();
+  const now = new Date().toISOString();
+
+  if (pool) {
+    await pool.query(
+      `INSERT INTO user_profiles (user_id, first_name, last_name, contacts, city, weight_category, updated_at)
+       VALUES ($1, '', '', '', '', '', $2)
+       ON CONFLICT (user_id) DO NOTHING`,
+      [userId, now]
+    );
+    return;
+  }
+
+  const exists = db.prepare('SELECT user_id FROM user_profiles WHERE user_id = ?').get(userId);
+  if (!exists) {
+    db.prepare(
+      'INSERT INTO user_profiles (user_id, first_name, last_name, contacts, city, weight_category, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).run(userId, '', '', '', '', '', now);
+  }
+}
+
+export async function getUserProfile(userId: string, email: string) {
+  await ensureUserProfile(userId);
+
+  if (pool) {
+    const result = await pool.query(
+      'SELECT first_name, last_name, contacts, city, weight_category FROM user_profiles WHERE user_id = $1 LIMIT 1',
+      [userId]
+    );
+    const row = result.rows[0] as
+      | {
+          first_name: string;
+          last_name: string;
+          contacts: string;
+          city: string;
+          weight_category: string;
+        }
+      | undefined;
+
+    return {
+      email,
+      firstName: row?.first_name ?? '',
+      lastName: row?.last_name ?? '',
+      contacts: row?.contacts ?? '',
+      city: row?.city ?? '',
+      weightCategory: row?.weight_category ?? ''
+    };
+  }
+
+  const row = db
+    .prepare(
+      'SELECT first_name, last_name, contacts, city, weight_category FROM user_profiles WHERE user_id = ?'
+    )
+    .get(userId) as
+    | {
+        first_name: string;
+        last_name: string;
+        contacts: string;
+        city: string;
+        weight_category: string;
+      }
+    | undefined;
+
+  return {
+    email,
+    firstName: row?.first_name ?? '',
+    lastName: row?.last_name ?? '',
+    contacts: row?.contacts ?? '',
+    city: row?.city ?? '',
+    weightCategory: row?.weight_category ?? ''
+  };
+}
+
+export async function updateUserProfile(userId: string, email: string, input: UserProfileInput) {
+  await ensureUserProfile(userId);
+  const now = new Date().toISOString();
+
+  if (pool) {
+    await pool.query(
+      `UPDATE user_profiles
+       SET first_name = $1, last_name = $2, contacts = $3, city = $4, weight_category = $5, updated_at = $6
+       WHERE user_id = $7`,
+      [
+        input.firstName ?? '',
+        input.lastName ?? '',
+        input.contacts ?? '',
+        input.city ?? '',
+        input.weightCategory ?? '',
+        now,
+        userId
+      ]
+    );
+    return getUserProfile(userId, email);
+  }
+
+  db.prepare(
+    'UPDATE user_profiles SET first_name = ?, last_name = ?, contacts = ?, city = ?, weight_category = ?, updated_at = ? WHERE user_id = ?'
+  ).run(
+    input.firstName ?? '',
+    input.lastName ?? '',
+    input.contacts ?? '',
+    input.city ?? '',
+    input.weightCategory ?? '',
+    now,
+    userId
+  );
+
+  return getUserProfile(userId, email);
 }
 
 export async function getDashboard(userId: string) {

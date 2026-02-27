@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '../components/ui/Button';
 import { Field } from '../components/ui/Field';
 import { Notification } from '../components/ui/Notification';
@@ -29,8 +29,6 @@ type UserProfile = {
   weightCategory: string;
 };
 
-const PROFILE_STORAGE_KEY = 'profile.sidebar';
-
 export function HomePage() {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [exercises, setExercises] = useState<Array<{ id: string; name: string; isBase: boolean }>>(
@@ -60,42 +58,35 @@ export function HomePage() {
   const [commentPlanId, setCommentPlanId] = useState('');
   const [commentText, setCommentText] = useState('');
 
-  const initials = useMemo(() => {
+  const initials = (() => {
     if (!email) return 'PL';
     const left = email.split('@')[0] ?? '';
     return left.slice(0, 2).toUpperCase();
-  }, [email]);
-
-  useEffect(() => {
-    const raw = localStorage.getItem(PROFILE_STORAGE_KEY);
-    if (raw) {
-      try {
-        setProfile(JSON.parse(raw) as UserProfile);
-      } catch {
-        // ignore invalid cache
-      }
-    }
-  }, []);
-
-  const saveProfile = () => {
-    localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
-  };
+  })();
 
   const refresh = async () => {
     setError(null);
     try {
-      const [d, e, p, w, me] = await Promise.all([
+      const [d, e, p, w, me, serverProfile] = await Promise.all([
         api.dashboard(),
         api.listExercises(),
         api.listPlans(),
         api.listWorkouts(),
-        api.me()
+        api.me(),
+        api.getProfile()
       ]);
       setDashboard(d);
       setExercises(e);
       setPlans(p);
       setWorkouts(w);
       setEmail(me.user.email);
+      setProfile({
+        firstName: serverProfile.firstName ?? '',
+        lastName: serverProfile.lastName ?? '',
+        contacts: serverProfile.contacts ?? '',
+        city: serverProfile.city ?? '',
+        weightCategory: serverProfile.weightCategory ?? ''
+      });
       if (e[0]) setWorkoutExercise((prev) => prev || e[0].name);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load dashboard');
@@ -140,7 +131,14 @@ export function HomePage() {
             onChange={(e) => setProfile((s) => ({ ...s, weightCategory: e.target.value }))}
           />
           <div className={css.muted}>{email || 'email@unknown'}</div>
-          <Button onClick={saveProfile}>Сохранить профиль</Button>
+          <Button
+            onClick={async () => {
+              await api.updateProfile(profile);
+              await refresh();
+            }}
+          >
+            Сохранить профиль
+          </Button>
         </aside>
 
         <div className={css.main}>

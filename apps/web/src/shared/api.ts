@@ -159,5 +159,21 @@ export const api = {
   addAthlete: (athleteId: string) =>
     request('/training/coach/athletes', { method: 'POST', body: JSON.stringify({ athleteId }) }),
   addComment: (payload: { athleteId: string; planId: string; comment: string }) =>
-    request('/training/coach/comments', { method: 'POST', body: JSON.stringify(payload) })
+    request('/training/coach/comments', { method: 'POST', body: JSON.stringify(payload) }),
+  getProfile: () =>
+    request<{
+      email: string;
+      firstName: string;
+      lastName: string;
+      contacts: string;
+      city: string;
+      weightCategory: string;
+    }>('/training/profile'),
+  updateProfile: (payload: {
+    firstName?: string;
+    lastName?: string;
+    contacts?: string;
+    city?: string;
+    weightCategory?: string;
+  }) => request('/training/profile', { method: 'PUT', body: JSON.stringify(payload) })
 };
