@@ -1,5 +1,7 @@
 # openclaw-sandbox
 
+> Autodeploy smoke-test: README updated to verify Vercel automatic redeploy.
+
 TypeScript monorepo:
 
 - `apps/web` — Vite + React
