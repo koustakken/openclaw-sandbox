@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Notification } from '../components/ui/Notification';
 import { UserSidebarCard } from '../components/UserSidebarCard';
 import { api } from '../shared/api';
@@ -20,6 +20,20 @@ type UserProfile = {
   weightCategory: string;
   currentWeight: number;
 };
+
+type Workout = {
+  id: string;
+  exercise: string;
+  reps: number;
+  weight: number;
+  notes?: string;
+  performed_at: string;
+  plan_id?: string | null;
+  plan_title?: string | null;
+};
+
+type Plan = { id: string; title: string };
+type Exercise = { id: string; name: string; isBase: boolean };
 
 const mockFollowingActivity = [
   {
@@ -51,14 +65,37 @@ const mockFollowingActivity = [
 export function HomePage() {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  const [query, setQuery] = useState('');
+  const [dateFilter, setDateFilter] = useState<'all' | '7d' | '30d'>('all');
+  const [showNewWorkout, setShowNewWorkout] = useState(false);
+
+  const [newExercise, setNewExercise] = useState('');
+  const [newReps, setNewReps] = useState('5');
+  const [newWeight, setNewWeight] = useState('100');
+  const [newPlanId, setNewPlanId] = useState('');
+  const [newDate, setNewDate] = useState(new Date().toISOString().slice(0, 10));
 
   const refresh = async () => {
     setError(null);
     try {
-      const [d, p] = await Promise.all([api.dashboard(), api.getProfile()]);
+      const [d, p, w, pl, ex] = await Promise.all([
+        api.dashboard(),
+        api.getProfile(),
+        api.listWorkouts(),
+        api.listPlans(),
+        api.listExercises()
+      ]);
       setDashboard(d);
       setProfile(p);
+      setWorkouts(w);
+      setPlans(pl.map((x) => ({ id: x.id, title: x.title })));
+      setExercises(ex);
+      if (ex.length > 0) setNewExercise((prev) => prev || ex[0].name);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load dashboard');
     }
@@ -67,6 +104,25 @@ export function HomePage() {
   useEffect(() => {
     refresh();
   }, []);
+
+  const filteredWorkouts = useMemo(() => {
+    const now = Date.now();
+    const msLimit =
+      dateFilter === '7d'
+        ? 7 * 24 * 60 * 60 * 1000
+        : dateFilter === '30d'
+          ? 30 * 24 * 60 * 60 * 1000
+          : null;
+
+    return workouts.filter((w) => {
+      const matchesQuery =
+        query.trim().length === 0 ||
+        w.exercise.toLowerCase().includes(query.toLowerCase()) ||
+        (w.plan_title ?? '').toLowerCase().includes(query.toLowerCase());
+      const matchesDate = msLimit === null || now - new Date(w.performed_at).getTime() <= msLimit;
+      return matchesQuery && matchesDate;
+    });
+  }, [workouts, query, dateFilter]);
 
   return (
     <section className={css.page}>
@@ -100,6 +156,115 @@ export function HomePage() {
                 {dashboard?.bestWeek.deadlift ?? 0} кг
               </div>
             </div>
+          </div>
+
+          <div className={css.repoBlock}>
+            <div className={css.repoToolbar}>
+              <input
+                className={css.search}
+                placeholder="Найти тренировку..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+              <select
+                className={css.select}
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value as 'all' | '7d' | '30d')}
+              >
+                <option value="all">Любая дата</option>
+                <option value="7d">Последние 7 дней</option>
+                <option value="30d">Последние 30 дней</option>
+              </select>
+              <button
+                className={css.newBtn}
+                type="button"
+                onClick={() => setShowNewWorkout((v) => !v)}
+              >
+                {showNewWorkout ? 'Закрыть' : 'Новая тренировка'}
+              </button>
+            </div>
+
+            {showNewWorkout && (
+              <div className={css.newWorkoutForm}>
+                <select
+                  className={css.select}
+                  value={newExercise}
+                  onChange={(e) => setNewExercise(e.target.value)}
+                >
+                  {exercises.map((e) => (
+                    <option key={e.id} value={e.name}>
+                      {e.name}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  className={css.input}
+                  value={newReps}
+                  onChange={(e) => setNewReps(e.target.value)}
+                  placeholder="Повторы"
+                />
+                <input
+                  className={css.input}
+                  value={newWeight}
+                  onChange={(e) => setNewWeight(e.target.value)}
+                  placeholder="Вес"
+                />
+                <select
+                  className={css.select}
+                  value={newPlanId}
+                  onChange={(e) => setNewPlanId(e.target.value)}
+                >
+                  <option value="">Без плана</option>
+                  {plans.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.title}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  className={css.input}
+                  type="date"
+                  value={newDate}
+                  onChange={(e) => setNewDate(e.target.value)}
+                />
+                <button
+                  className={css.newBtn}
+                  type="button"
+                  onClick={async () => {
+                    await api.createWorkout({
+                      exercise: newExercise,
+                      reps: Number(newReps),
+                      weight: Number(newWeight),
+                      planId: newPlanId || undefined,
+                      performedAt: new Date(newDate).toISOString()
+                    });
+                    await refresh();
+                    setShowNewWorkout(false);
+                  }}
+                >
+                  Добавить
+                </button>
+              </div>
+            )}
+
+            {filteredWorkouts.length === 0 ? (
+              <div className={css.repoEmpty}>
+                Тренировок пока нет или ничего не найдено по фильтрам.
+              </div>
+            ) : (
+              filteredWorkouts.map((w) => (
+                <div className={css.repoItem} key={w.id}>
+                  <div className={css.repoLeft}>
+                    <div className={css.repoTitle}>{w.exercise}</div>
+                    <div className={css.repoMeta}>
+                      План: {w.plan_title || 'Без плана'} ·{' '}
+                      {new Date(w.performed_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <div className={css.repoRight}>{Math.round(w.reps * w.weight)} кг</div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
