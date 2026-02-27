@@ -1,61 +1,72 @@
 .header {
-  background: #24292f;
-  color: #f0f6fc;
-  border-bottom: 1px solid #30363d;
+  background: #ffffff;
+  border-bottom: 1px solid #d8dee4;
 }
 
-.inner {
-  height: 64px;
+.topRow {
+  height: 56px;
   max-width: 1280px;
   margin: 0 auto;
   padding: 0 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
 }
 
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  color: #f0f6fc;
+  gap: 8px;
+  color: #24292f;
   text-decoration: none;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .logo {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #f6f8fa;
+  border: 1px solid #d0d7de;
   display: grid;
   place-items: center;
-  border-radius: 50%;
-  background: #f0f6fc;
-  color: #24292f;
-  font-size: 16px;
+  font-size: 13px;
 }
 
-.nav {
+.tabs {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 16px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 18px;
+  height: 44px;
 }
 
-.link {
-  color: #f0f6fc;
+.tab {
+  color: #57606a;
   text-decoration: none;
   font-size: 14px;
-  opacity: 0.9;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  border-bottom: 2px solid transparent;
 }
 
-.link:hover {
-  opacity: 1;
+.tabActive {
+  color: #24292f;
+  border-bottom-color: #fd8c73;
+  font-weight: 600;
 }
 
 .logout {
-  border: 1px solid #57606a;
+  border: 1px solid #d0d7de;
+  background: #f6f8fa;
+  color: #24292f;
   border-radius: 6px;
-  background: transparent;
-  color: #f0f6fc;
   padding: 6px 10px;
+  font-size: 12px;
 }
