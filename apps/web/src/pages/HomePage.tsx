@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Notification } from '../components/ui/Notification';
+import { UserSidebarCard } from '../components/UserSidebarCard';
 import { api } from '../shared/api';
 import css from './HomePage.module.css';
 
@@ -68,40 +68,20 @@ export function HomePage() {
     refresh();
   }, []);
 
-  const initials = (() => {
-    const left = profile?.email?.split('@')[0] ?? 'pl';
-    return left.slice(0, 2).toUpperCase();
-  })();
-
   return (
     <section className={css.page}>
       {error && <Notification tone="error">{error}</Notification>}
 
       <div className={css.layout}>
-        <aside className={css.sidebarCard}>
-          <div className={css.avatar}>{initials}</div>
-          <h3>
-            {profile?.firstName || profile?.lastName
-              ? `${profile?.firstName ?? ''} ${profile?.lastName ?? ''}`.trim()
-              : 'Профиль спортсмена'}
-          </h3>
-          <div className={css.muted}>{profile?.email ?? '-'}</div>
-          <div>
-            <strong>Контакты:</strong> {profile?.contacts || '—'}
-          </div>
-          <div>
-            <strong>Город:</strong> {profile?.city || '—'}
-          </div>
-          <div>
-            <strong>Весовая категория:</strong> {profile?.weightCategory || '—'}
-          </div>
-          <div>
-            <strong>Актуальный вес:</strong> {profile?.currentWeight ?? 0} кг
-          </div>
-          <Link to="/profile" className={css.editProfile}>
-            Edit profile
-          </Link>
-        </aside>
+        <UserSidebarCard
+          email={profile?.email ?? ''}
+          firstName={profile?.firstName ?? ''}
+          lastName={profile?.lastName ?? ''}
+          contacts={profile?.contacts ?? ''}
+          city={profile?.city ?? ''}
+          weightCategory={profile?.weightCategory ?? ''}
+          currentWeight={profile?.currentWeight ?? 0}
+        />
 
         <div className={css.main}>
           <div className={css.grid}>

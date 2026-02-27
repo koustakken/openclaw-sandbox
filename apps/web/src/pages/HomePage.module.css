@@ -26,24 +26,6 @@
   }
 }
 
-.sidebarCard {
-  padding: 8px 2px;
-  display: grid;
-  gap: 10px;
-}
-
-.avatar {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: #24292f;
-  color: #fff;
-  display: grid;
-  place-items: center;
-  font-weight: 700;
-  font-size: 22px;
-}
-
 .main {
   display: grid;
   gap: 16px;

@@ -1,0 +1,84 @@
+.card {
+  display: grid;
+  gap: 10px;
+}
+
+.avatar {
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: #24292f;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 64px;
+}
+
+.name {
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.login {
+  margin-top: -4px;
+  color: #57606a;
+  font-size: 20px;
+  font-weight: 300;
+}
+
+.bio {
+  margin-top: 8px;
+  color: #24292f;
+}
+
+.metaRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: #57606a;
+  font-size: 14px;
+}
+
+.icon {
+  width: 16px;
+  text-align: center;
+}
+
+.followRow {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  color: #57606a;
+  font-size: 14px;
+}
+
+.link {
+  color: #0969da;
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.editBtn {
+  margin-top: 8px;
+}
+
+@media (max-width: 980px) {
+  .avatar {
+    width: 140px;
+    height: 140px;
+    font-size: 34px;
+  }
+
+  .name {
+    font-size: 24px;
+  }
+
+  .login {
+    font-size: 16px;
+  }
+}
