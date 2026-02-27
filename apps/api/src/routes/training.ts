@@ -33,7 +33,8 @@ const workoutSchema = z.object({
   reps: z.number().int().positive(),
   weight: z.number().nonnegative(),
   notes: z.string().optional(),
-  performedAt: z.string().optional()
+  performedAt: z.string().optional(),
+  planId: z.string().optional()
 });
 
 const profileSchema = z.object({
@@ -41,7 +42,8 @@ const profileSchema = z.object({
   lastName: z.string().optional(),
   contacts: z.string().optional(),
   city: z.string().optional(),
-  weightCategory: z.string().optional()
+  weightCategory: z.string().optional(),
+  currentWeight: z.number().nonnegative().optional()
 });
 
 trainingRouter.get('/dashboard', async (req: AuthenticatedRequest, res) => {

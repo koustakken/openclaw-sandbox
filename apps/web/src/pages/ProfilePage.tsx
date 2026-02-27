@@ -12,6 +12,7 @@ type ProfileModel = {
   contacts: string;
   city: string;
   weightCategory: string;
+  currentWeight: number;
 };
 
 export function ProfilePage() {
@@ -71,6 +72,13 @@ export function ProfilePage() {
         value={profile.weightCategory}
         onChange={(e) => setProfile((p) => (p ? { ...p, weightCategory: e.target.value } : p))}
       />
+      <Field
+        label="Актуальный вес (кг)"
+        value={String(profile.currentWeight ?? 0)}
+        onChange={(e) =>
+          setProfile((p) => (p ? { ...p, currentWeight: Number(e.target.value || 0) } : p))
+        }
+      />
 
       <Button
         variant="primary"
@@ -80,7 +88,8 @@ export function ProfilePage() {
             lastName: profile.lastName,
             contacts: profile.contacts,
             city: profile.city,
-            weightCategory: profile.weightCategory
+            weightCategory: profile.weightCategory,
+            currentWeight: Number(profile.currentWeight ?? 0)
           });
           setSaved(true);
         }}

@@ -103,8 +103,9 @@ export const api = {
   dashboard: () =>
     request<{
       stats: { exercise: string; bestWeight: number }[];
-      plansCount: number;
-      workoutsCount: number;
+      weeklyTonnage: number;
+      currentWeight: number;
+      bestWeek: { squat: number; bench: number; deadlift: number };
     }>('/training/dashboard'),
   listExercises: () =>
     request<Array<{ id: string; name: string; isBase: boolean }>>('/training/exercises'),
@@ -136,6 +137,8 @@ export const api = {
         weight: number;
         notes?: string;
         performed_at: string;
+        plan_id?: string | null;
+        plan_title?: string | null;
       }>
     >('/training/workouts'),
   createWorkout: (payload: {
@@ -144,6 +147,7 @@ export const api = {
     weight: number;
     notes?: string;
     performedAt?: string;
+    planId?: string;
   }) => request('/training/workouts', { method: 'POST', body: JSON.stringify(payload) }),
   updateWorkout: (
     id: string,
@@ -153,6 +157,7 @@ export const api = {
       weight: number;
       notes?: string;
       performedAt?: string;
+      planId?: string;
     }
   ) => request(`/training/workouts/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
   deleteWorkout: (id: string) => request(`/training/workouts/${id}`, { method: 'DELETE' }),
@@ -168,6 +173,7 @@ export const api = {
       contacts: string;
       city: string;
       weightCategory: string;
+      currentWeight: number;
     }>('/training/profile'),
   updateProfile: (payload: {
     firstName?: string;
@@ -175,5 +181,6 @@ export const api = {
     contacts?: string;
     city?: string;
     weightCategory?: string;
+    currentWeight?: number;
   }) => request('/training/profile', { method: 'PUT', body: JSON.stringify(payload) })
 };
