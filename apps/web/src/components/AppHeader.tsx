@@ -13,20 +13,12 @@ export function AppHeader({ onLogout }: Props) {
           <span className={css.logo} aria-hidden>
             🏋️
           </span>
-          <span>koustakken</span>
+          <span>PowerHub</span>
         </Link>
 
-        <div className={css.actions}>
-          <button className={css.iconBtn} type="button" aria-label="notifications">
-            🔔
-          </button>
-          <button className={css.iconBtn} type="button" aria-label="settings">
-            ⚙️
-          </button>
-          <button className={css.iconBtn} type="button" aria-label="profile">
-            👤
-          </button>
-        </div>
+        <button type="button" onClick={onLogout} className={css.logout}>
+          Logout
+        </button>
       </div>
 
       <nav className={css.tabs}>
@@ -37,21 +29,6 @@ export function AppHeader({ onLogout }: Props) {
         >
           <span>🏠</span> Overview
         </NavLink>
-        <NavLink
-          to="/health"
-          className={({ isActive }) => `${css.tab} ${isActive ? css.tabActive : ''}`}
-        >
-          <span>📈</span> Health
-        </NavLink>
-        <NavLink
-          to="/profile"
-          className={({ isActive }) => `${css.tab} ${isActive ? css.tabActive : ''}`}
-        >
-          <span>🧍</span> Profile
-        </NavLink>
-        <button type="button" onClick={onLogout} className={css.logout}>
-          Logout
-        </button>
       </nav>
     </header>
   );
