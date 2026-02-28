@@ -13,6 +13,9 @@ type Props = {
   currentWeight: number;
   followers?: number;
   following?: number;
+  isOwn?: boolean;
+  isFollowing?: boolean;
+  onToggleFollow?: () => void;
 };
 
 export function UserSidebarCard({
@@ -24,8 +27,11 @@ export function UserSidebarCard({
   city,
   weightCategory,
   currentWeight,
-  followers = 10,
-  following = 21
+  followers = 0,
+  following = 0,
+  isOwn = true,
+  isFollowing = false,
+  onToggleFollow
 }: Props) {
   const initials = (email.split('@')[0] ?? 'pl').slice(0, 2).toUpperCase();
   const displayName = `${firstName} ${lastName}`.trim() || 'Powerlifter';
@@ -38,11 +44,17 @@ export function UserSidebarCard({
       <div className={css.login}>{login}</div>
       <div className={css.bio}>Work</div>
 
-      <Link to="/profile" className={css.editBtn}>
-        <Button size="sm" style={{ width: '100%' }}>
-          Edit profile
+      {isOwn ? (
+        <Link to="/profile" className={css.editBtn}>
+          <Button size="sm" style={{ width: '100%' }}>
+            Edit profile
+          </Button>
+        </Link>
+      ) : (
+        <Button size="sm" style={{ width: '100%' }} onClick={onToggleFollow}>
+          {isFollowing ? 'Unfollow' : 'Follow'}
         </Button>
-      </Link>
+      )}
 
       <div className={css.followRow}>
         <span className={css.icon}>👥</span>

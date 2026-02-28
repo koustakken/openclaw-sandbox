@@ -16,6 +16,8 @@ import {
   listFollowing,
   listPlans,
   listWorkouts,
+  getUserByUsername,
+  searchUsers,
   unfollowUser,
   updatePlan,
   updateUserProfile,
@@ -85,6 +87,24 @@ trainingRouter.get('/follows', async (req: AuthenticatedRequest, res) => {
   const userId = req.auth?.sub;
   if (!userId) return res.status(401).json({ message: 'Unauthorized' });
   return res.json(await listFollowing(userId));
+});
+
+trainingRouter.get('/users/search', async (req: AuthenticatedRequest, res) => {
+  const userId = req.auth?.sub;
+  if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+  const q = String(req.query.q ?? '').trim();
+  if (!q) return res.json([]);
+  return res.json(await searchUsers(q));
+});
+
+trainingRouter.get('/users/:username', async (req: AuthenticatedRequest, res) => {
+  const userId = req.auth?.sub;
+  if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+  const user = await getUserByUsername(req.params.username);
+  if (!user) return res.status(404).json({ message: 'User not found' });
+  const workouts = await listWorkouts(user.userId);
+  const dashboard = await getDashboard(user.userId);
+  return res.json({ user, workouts, dashboard });
 });
 
 trainingRouter.post('/follows', async (req: AuthenticatedRequest, res) => {

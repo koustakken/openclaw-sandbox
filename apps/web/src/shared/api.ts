@@ -84,7 +84,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   getHealth: () => request<HealthResponse>('/health'),
-  register: (payload: { email: string; password: string }) =>
+  register: (payload: { username: string; email: string; password: string }) =>
     request<AuthResponse>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(payload)
@@ -196,5 +196,42 @@ export const api = {
     ),
   followUser: (username: string) =>
     request('/training/follows', { method: 'POST', body: JSON.stringify({ username }) }),
-  unfollowUser: (username: string) => request(`/training/follows/${username}`, { method: 'DELETE' })
+  unfollowUser: (username: string) =>
+    request(`/training/follows/${username}`, { method: 'DELETE' }),
+  searchUsers: (q: string) =>
+    request<Array<{ username: string; email: string; firstName: string; lastName: string }>>(
+      `/training/users/search?q=${encodeURIComponent(q)}`
+    ),
+  getUserPage: (username: string) =>
+    request<{
+      user: {
+        userId: string;
+        email: string;
+        username: string;
+        firstName: string;
+        lastName: string;
+        contacts: string;
+        city: string;
+        weightCategory: string;
+        currentWeight: number;
+        followers: number;
+        following: number;
+      };
+      workouts: Array<{
+        id: string;
+        exercise: string;
+        reps: number;
+        weight: number;
+        notes?: string;
+        performed_at: string;
+        plan_id?: string | null;
+        plan_title?: string | null;
+      }>;
+      dashboard: {
+        stats: { exercise: string; bestWeight: number }[];
+        weeklyTonnage: number;
+        currentWeight: number;
+        bestWeek: { squat: number; bench: number; deadlift: number };
+      };
+    }>(`/training/users/${encodeURIComponent(username)}`)
 };

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { Notification } from '../components/ui/Notification';
 import { UserSidebarCard } from '../components/UserSidebarCard';
 import { api } from '../shared/api';
@@ -12,6 +13,7 @@ type DashboardData = {
 };
 
 type UserProfile = {
+  userId?: string;
   email: string;
   username: string;
   firstName: string;
@@ -66,8 +68,11 @@ const mockFollowingActivity = [
 ];
 
 export function HomePage() {
+  const { username } = useParams();
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [myUsername, setMyUsername] = useState('');
+  const [myFollowing, setMyFollowing] = useState<string[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
@@ -86,6 +91,22 @@ export function HomePage() {
   const refresh = async () => {
     setError(null);
     try {
+      const ownProfile = await api.getProfile();
+      setMyUsername(ownProfile.username);
+
+      const followList = await api.listFollowing();
+      setMyFollowing(followList.map((f) => f.username));
+
+      if (username && username !== ownProfile.username) {
+        const page = await api.getUserPage(username);
+        setDashboard(page.dashboard);
+        setProfile(page.user);
+        setWorkouts(page.workouts);
+        setPlans([]);
+        setExercises([]);
+        return;
+      }
+
       const [d, p, w, pl, ex] = await Promise.all([
         api.dashboard(),
         api.getProfile(),
@@ -106,7 +127,7 @@ export function HomePage() {
 
   useEffect(() => {
     refresh();
-  }, []);
+  }, [username]);
 
   const filteredWorkouts = useMemo(() => {
     const now = Date.now();
@@ -127,6 +148,9 @@ export function HomePage() {
     });
   }, [workouts, query, dateFilter]);
 
+  const isOwn = !profile?.username || profile.username === myUsername;
+  const isFollowing = Boolean(profile?.username && myFollowing.includes(profile.username));
+
   return (
     <section className={css.page}>
       {error && <Notification tone="error">{error}</Notification>}
@@ -143,6 +167,14 @@ export function HomePage() {
           currentWeight={profile?.currentWeight ?? 0}
           followers={profile?.followers ?? 0}
           following={profile?.following ?? 0}
+          isOwn={isOwn}
+          isFollowing={isFollowing}
+          onToggleFollow={async () => {
+            if (!profile?.username) return;
+            if (isFollowing) await api.unfollowUser(profile.username);
+            else await api.followUser(profile.username);
+            await refresh();
+          }}
         />
 
         <div className={css.main}>
@@ -181,16 +213,18 @@ export function HomePage() {
                 <option value="7d">Последние 7 дней</option>
                 <option value="30d">Последние 30 дней</option>
               </select>
-              <button
-                className={css.newBtn}
-                type="button"
-                onClick={() => setShowNewWorkout((v) => !v)}
-              >
-                {showNewWorkout ? 'Закрыть' : 'Новая тренировка'}
-              </button>
+              {isOwn && (
+                <button
+                  className={css.newBtn}
+                  type="button"
+                  onClick={() => setShowNewWorkout((v) => !v)}
+                >
+                  {showNewWorkout ? 'Закрыть' : 'Новая тренировка'}
+                </button>
+              )}
             </div>
 
-            {showNewWorkout && (
+            {isOwn && showNewWorkout && (
               <div className={css.newWorkoutForm}>
                 <select
                   className={css.select}

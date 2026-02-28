@@ -9,6 +9,7 @@ import css from './AuthForm.module.css';
 
 export function RegisterPage() {
   const navigate = useNavigate();
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +19,7 @@ export function RegisterPage() {
     setError(null);
 
     try {
-      const result = await api.register({ email, password });
+      const result = await api.register({ username, email, password });
       authStorage.setSession({
         accessToken: result.accessToken,
         refreshToken: result.refreshToken
@@ -37,6 +38,14 @@ export function RegisterPage() {
 
         <div className={css.card}>
           <form onSubmit={onSubmit} className={css.form}>
+            <Field
+              label="Username"
+              type="text"
+              placeholder="tema"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+            />
             <Field
               label="Email"
               type="email"

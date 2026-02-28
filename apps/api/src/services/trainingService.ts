@@ -927,6 +927,140 @@ export async function unfollowUser(followerId: string, targetUsername: string) {
   );
 }
 
+export async function searchUsers(query: string) {
+  await ensureSchema();
+  const q = `%${query.toLowerCase()}%`;
+
+  if (pool) {
+    const result = await pool.query<{
+      username: string;
+      email: string;
+      first_name: string;
+      last_name: string;
+    }>(
+      `SELECT COALESCE(p.username, split_part(u.email, '@', 1)) as username, u.email, COALESCE(p.first_name, '') as first_name, COALESCE(p.last_name, '') as last_name
+       FROM users u
+       LEFT JOIN user_profiles p ON p.user_id = u.id
+       WHERE LOWER(COALESCE(p.username, split_part(u.email, '@', 1))) LIKE $1
+       ORDER BY username ASC
+       LIMIT 20`,
+      [q]
+    );
+
+    return result.rows.map((r) => ({
+      username: r.username,
+      email: r.email,
+      firstName: r.first_name,
+      lastName: r.last_name
+    }));
+  }
+
+  const rows = db
+    .prepare(
+      `SELECT COALESCE(p.username, substr(u.email, 1, instr(u.email, '@') - 1)) as username, u.email as email, COALESCE(p.first_name, '') as first_name, COALESCE(p.last_name, '') as last_name
+       FROM users u
+       LEFT JOIN user_profiles p ON p.user_id = u.id
+       WHERE LOWER(COALESCE(p.username, substr(u.email, 1, instr(u.email, '@') - 1))) LIKE ?
+       ORDER BY username ASC
+       LIMIT 20`
+    )
+    .all(q) as Array<{ username: string; email: string; first_name: string; last_name: string }>;
+
+  return rows.map((r) => ({
+    username: r.username,
+    email: r.email,
+    firstName: r.first_name,
+    lastName: r.last_name
+  }));
+}
+
+export async function getUserByUsername(username: string) {
+  await ensureSchema();
+  const login = username.trim().toLowerCase();
+
+  if (pool) {
+    const result = await pool.query<{
+      id: string;
+      email: string;
+      username: string;
+      first_name: string;
+      last_name: string;
+      contacts: string;
+      city: string;
+      weight_category: string;
+      current_weight: number;
+    }>(
+      `SELECT u.id, u.email, COALESCE(p.username, split_part(u.email, '@', 1)) as username,
+              COALESCE(p.first_name, '') as first_name, COALESCE(p.last_name, '') as last_name,
+              COALESCE(p.contacts, '') as contacts, COALESCE(p.city, '') as city,
+              COALESCE(p.weight_category, '') as weight_category, COALESCE(p.current_weight, 0) as current_weight
+       FROM users u
+       LEFT JOIN user_profiles p ON p.user_id = u.id
+       WHERE LOWER(COALESCE(p.username, split_part(u.email, '@', 1))) = $1
+       LIMIT 1`,
+      [login]
+    );
+    const row = result.rows[0];
+    if (!row) return null;
+    const counts = await getFollowCounts(row.id);
+    return {
+      userId: row.id,
+      email: row.email,
+      username: row.username,
+      firstName: row.first_name,
+      lastName: row.last_name,
+      contacts: row.contacts,
+      city: row.city,
+      weightCategory: row.weight_category,
+      currentWeight: Number(row.current_weight ?? 0),
+      followers: counts.followers,
+      following: counts.following
+    };
+  }
+
+  const row = db
+    .prepare(
+      `SELECT u.id as id, u.email as email,
+              COALESCE(p.username, substr(u.email, 1, instr(u.email, '@') - 1)) as username,
+              COALESCE(p.first_name, '') as first_name, COALESCE(p.last_name, '') as last_name,
+              COALESCE(p.contacts, '') as contacts, COALESCE(p.city, '') as city,
+              COALESCE(p.weight_category, '') as weight_category, COALESCE(p.current_weight, 0) as current_weight
+       FROM users u
+       LEFT JOIN user_profiles p ON p.user_id = u.id
+       WHERE LOWER(COALESCE(p.username, substr(u.email, 1, instr(u.email, '@') - 1))) = ?
+       LIMIT 1`
+    )
+    .get(login) as
+    | {
+        id: string;
+        email: string;
+        username: string;
+        first_name: string;
+        last_name: string;
+        contacts: string;
+        city: string;
+        weight_category: string;
+        current_weight: number;
+      }
+    | undefined;
+
+  if (!row) return null;
+  const counts = await getFollowCounts(row.id);
+  return {
+    userId: row.id,
+    email: row.email,
+    username: row.username,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    contacts: row.contacts,
+    city: row.city,
+    weightCategory: row.weight_category,
+    currentWeight: Number(row.current_weight ?? 0),
+    followers: counts.followers,
+    following: counts.following
+  };
+}
+
 export async function listFollowing(followerId: string) {
   await ensureSchema();
 

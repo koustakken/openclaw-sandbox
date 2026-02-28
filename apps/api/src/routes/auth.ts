@@ -19,8 +19,8 @@ export const authRouter: Router = Router();
 
 authRouter.post('/register', async (req, res) => {
   try {
-    const { email, password } = parseRegisterInput(req.body);
-    const user = await registerUser(email, password);
+    const { username, email, password } = parseRegisterInput(req.body);
+    const user = await registerUser(username, email, password);
 
     return res.status(201).json({
       user,
@@ -35,6 +35,9 @@ authRouter.post('/register', async (req, res) => {
 
     if (err instanceof Error && err.message === 'USER_ALREADY_EXISTS') {
       return res.status(409).json({ message: 'User already exists' });
+    }
+    if (err instanceof Error && err.message === 'USERNAME_TAKEN') {
+      return res.status(409).json({ message: 'Username already taken' });
     }
 
     return res.status(500).json({ message: 'Internal server error' });

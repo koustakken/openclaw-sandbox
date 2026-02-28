@@ -39,8 +39,8 @@ export function LoginPage() {
           <form onSubmit={onSubmit} className={css.form}>
             <Field
               label="Username or email address"
-              type="email"
-              placeholder="you@example.com"
+              type="text"
+              placeholder="you@example.com or tema"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required

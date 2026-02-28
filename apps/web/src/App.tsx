@@ -2,7 +2,6 @@ import { Navigate, createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { GuestOnlyRoute } from './components/GuestOnlyRoute';
 import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { HealthPage } from './pages/HealthPage';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 import { NotFoundPage } from './pages/NotFoundPage';
@@ -26,8 +25,8 @@ const router = createBrowserRouter(
           element: <Layout />,
           children: [
             { index: true, element: <HomePage /> },
-            { path: 'health', element: <HealthPage /> },
             { path: 'profile', element: <ProfilePage /> },
+            { path: ':username', element: <HomePage /> },
             { path: '*', element: <NotFoundPage /> }
           ]
         }
