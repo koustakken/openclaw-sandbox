@@ -7,10 +7,21 @@
   </head>
   <body>
     <script>
-      // SPA fallback for GitHub Pages deep links
+      // SPA fallback for deep links.
+      // GitHub Pages: keep repo base (/repo-name)
+      // Vercel/others: use root (/)
+      var isGithubPages = window.location.hostname.endsWith('github.io');
+      var parts = window.location.pathname.split('/').filter(Boolean);
+      var base = isGithubPages && parts.length > 0 ? '/' + parts[0] : '';
+
       var path = window.location.pathname + window.location.search + window.location.hash;
-      var base = window.location.pathname.split('/').slice(0, 2).join('/');
-      window.location.replace(base + '/?redirect=' + encodeURIComponent(path));
+
+      // prevent recursive redirect chains
+      if (window.location.search.includes('redirect=')) {
+        window.location.replace((base || '') + '/');
+      } else {
+        window.location.replace((base || '') + '/?redirect=' + encodeURIComponent(path));
+      }
     </script>
   </body>
 </html>
