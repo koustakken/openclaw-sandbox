@@ -34,12 +34,16 @@ const planSchema = z.object({
 });
 
 const workoutSchema = z.object({
+  title: z.string().min(1),
   exercise: z.string().min(1),
+  sets: z.number().int().positive(),
   reps: z.number().int().positive(),
   weight: z.number().nonnegative(),
+  intensity: z.enum(['light', 'medium', 'heavy']),
   notes: z.string().optional(),
   performedAt: z.string().optional(),
-  planId: z.string().optional()
+  planId: z.string().optional(),
+  currentBodyWeight: z.number().nonnegative().optional()
 });
 
 const profileSchema = z.object({

@@ -23,12 +23,16 @@ type UserProfileInput = {
   currentWeight?: number;
 };
 type WorkoutInput = {
+  title: string;
   exercise: string;
+  sets: number;
   reps: number;
   weight: number;
+  intensity: 'light' | 'medium' | 'heavy';
   notes?: string;
   performedAt?: string;
   planId?: string;
+  currentBodyWeight?: number;
 };
 
 const BASE_EXERCISES = ['Присед', 'Жим лежа', 'Становая тяга'];
@@ -69,9 +73,14 @@ async function ensureSchema() {
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL,
       plan_id TEXT,
+      title TEXT NOT NULL DEFAULT '',
       exercise TEXT NOT NULL,
+      sets INTEGER NOT NULL DEFAULT 1,
       reps INTEGER NOT NULL,
       weight REAL NOT NULL,
+      tonnage REAL NOT NULL DEFAULT 0,
+      intensity TEXT NOT NULL DEFAULT 'medium',
+      body_weight REAL,
       notes TEXT,
       performed_at TEXT NOT NULL,
       created_at TEXT NOT NULL,
@@ -147,9 +156,14 @@ async function ensureSchema() {
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL,
       plan_id TEXT,
+      title TEXT NOT NULL DEFAULT '',
       exercise TEXT NOT NULL,
+      sets INTEGER NOT NULL DEFAULT 1,
       reps INTEGER NOT NULL,
       weight DOUBLE PRECISION NOT NULL,
+      tonnage DOUBLE PRECISION NOT NULL DEFAULT 0,
+      intensity TEXT NOT NULL DEFAULT 'medium',
+      body_weight DOUBLE PRECISION,
       notes TEXT,
       performed_at TEXT NOT NULL,
       created_at TEXT NOT NULL,
@@ -197,6 +211,15 @@ async function ensureSchema() {
   if (pool) {
     await pool.query(pgSql);
     await pool.query('ALTER TABLE workouts ADD COLUMN IF NOT EXISTS plan_id TEXT');
+    await pool.query("ALTER TABLE workouts ADD COLUMN IF NOT EXISTS title TEXT DEFAULT ''");
+    await pool.query('ALTER TABLE workouts ADD COLUMN IF NOT EXISTS sets INTEGER DEFAULT 1');
+    await pool.query(
+      'ALTER TABLE workouts ADD COLUMN IF NOT EXISTS tonnage DOUBLE PRECISION DEFAULT 0'
+    );
+    await pool.query(
+      "ALTER TABLE workouts ADD COLUMN IF NOT EXISTS intensity TEXT DEFAULT 'medium'"
+    );
+    await pool.query('ALTER TABLE workouts ADD COLUMN IF NOT EXISTS body_weight DOUBLE PRECISION');
     await pool.query("ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS username TEXT DEFAULT ''");
     await pool.query(
       'ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS current_weight DOUBLE PRECISION DEFAULT 0'
@@ -205,6 +228,31 @@ async function ensureSchema() {
     db.exec(sqliteSql);
     try {
       db.exec('ALTER TABLE workouts ADD COLUMN plan_id TEXT');
+    } catch {
+      // already exists
+    }
+    try {
+      db.exec("ALTER TABLE workouts ADD COLUMN title TEXT NOT NULL DEFAULT ''");
+    } catch {
+      // already exists
+    }
+    try {
+      db.exec('ALTER TABLE workouts ADD COLUMN sets INTEGER NOT NULL DEFAULT 1');
+    } catch {
+      // already exists
+    }
+    try {
+      db.exec('ALTER TABLE workouts ADD COLUMN tonnage REAL NOT NULL DEFAULT 0');
+    } catch {
+      // already exists
+    }
+    try {
+      db.exec("ALTER TABLE workouts ADD COLUMN intensity TEXT NOT NULL DEFAULT 'medium'");
+    } catch {
+      // already exists
+    }
+    try {
+      db.exec('ALTER TABLE workouts ADD COLUMN body_weight REAL');
     } catch {
       // already exists
     }
@@ -485,7 +533,7 @@ export async function getDashboard(userId: string) {
 
   if (pool) {
     const tonnage = await pool.query<{ tonnage: number | null }>(
-      'SELECT SUM(reps * weight) as tonnage FROM workouts WHERE user_id = $1 AND performed_at >= $2',
+      'SELECT SUM(COALESCE(tonnage, sets * reps * weight, reps * weight)) as tonnage FROM workouts WHERE user_id = $1 AND performed_at >= $2',
       [userId, weekStartIso]
     );
     weeklyTonnage = Number(tonnage.rows[0]?.tonnage ?? 0);
@@ -498,7 +546,7 @@ export async function getDashboard(userId: string) {
   } else {
     const tonnage = db
       .prepare(
-        'SELECT SUM(reps * weight) as tonnage FROM workouts WHERE user_id = ? AND performed_at >= ?'
+        'SELECT SUM(COALESCE(tonnage, sets * reps * weight, reps * weight)) as tonnage FROM workouts WHERE user_id = ? AND performed_at >= ?'
       )
       .get(userId, weekStartIso) as { tonnage: number | null };
     weeklyTonnage = Number(tonnage.tonnage ?? 0);
@@ -710,9 +758,14 @@ export async function createWorkout(userId: string, input: WorkoutInput) {
   const workout = {
     id: crypto.randomUUID(),
     userId,
+    title: input.title,
     exercise: input.exercise,
+    sets: input.sets,
     reps: input.reps,
     weight: input.weight,
+    tonnage: input.sets * input.reps * input.weight,
+    intensity: input.intensity,
+    bodyWeight: input.currentBodyWeight ?? null,
     notes: input.notes ?? '',
     planId: input.planId ?? null,
     performedAt: input.performedAt ?? now,
@@ -722,14 +775,19 @@ export async function createWorkout(userId: string, input: WorkoutInput) {
 
   if (pool) {
     await pool.query(
-      'INSERT INTO workouts (id, user_id, plan_id, exercise, reps, weight, notes, performed_at, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',
+      'INSERT INTO workouts (id, user_id, plan_id, title, exercise, sets, reps, weight, tonnage, intensity, body_weight, notes, performed_at, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)',
       [
         workout.id,
         workout.userId,
         workout.planId,
+        workout.title,
         workout.exercise,
+        workout.sets,
         workout.reps,
         workout.weight,
+        workout.tonnage,
+        workout.intensity,
+        workout.bodyWeight,
         workout.notes,
         workout.performedAt,
         workout.createdAt,
@@ -738,19 +796,37 @@ export async function createWorkout(userId: string, input: WorkoutInput) {
     );
   } else {
     db.prepare(
-      'INSERT INTO workouts (id, user_id, plan_id, exercise, reps, weight, notes, performed_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO workouts (id, user_id, plan_id, title, exercise, sets, reps, weight, tonnage, intensity, body_weight, notes, performed_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     ).run(
       workout.id,
       workout.userId,
       workout.planId,
+      workout.title,
       workout.exercise,
+      workout.sets,
       workout.reps,
       workout.weight,
+      workout.tonnage,
+      workout.intensity,
+      workout.bodyWeight,
       workout.notes,
       workout.performedAt,
       workout.createdAt,
       workout.updatedAt
     );
+  }
+
+  if (typeof input.currentBodyWeight === 'number') {
+    if (pool) {
+      await pool.query(
+        'UPDATE user_profiles SET current_weight = $1, updated_at = $2 WHERE user_id = $3',
+        [input.currentBodyWeight, now, userId]
+      );
+    } else {
+      db.prepare(
+        'UPDATE user_profiles SET current_weight = ?, updated_at = ? WHERE user_id = ?'
+      ).run(input.currentBodyWeight, now, userId);
+    }
   }
 
   return workout;
@@ -762,12 +838,17 @@ export async function updateWorkout(userId: string, id: string, input: WorkoutIn
 
   if (pool) {
     const result = await pool.query(
-      'UPDATE workouts SET plan_id=$1, exercise=$2, reps=$3, weight=$4, notes=$5, performed_at=$6, updated_at=$7 WHERE id=$8 AND user_id=$9 RETURNING *',
+      'UPDATE workouts SET plan_id=$1, title=$2, exercise=$3, sets=$4, reps=$5, weight=$6, tonnage=$7, intensity=$8, body_weight=$9, notes=$10, performed_at=$11, updated_at=$12 WHERE id=$13 AND user_id=$14 RETURNING *',
       [
         input.planId ?? null,
+        input.title,
         input.exercise,
+        input.sets,
         input.reps,
         input.weight,
+        input.sets * input.reps * input.weight,
+        input.intensity,
+        input.currentBodyWeight ?? null,
         input.notes ?? '',
         input.performedAt ?? now,
         now,
@@ -775,22 +856,43 @@ export async function updateWorkout(userId: string, id: string, input: WorkoutIn
         userId
       ]
     );
+
+    if (typeof input.currentBodyWeight === 'number') {
+      await pool.query(
+        'UPDATE user_profiles SET current_weight = $1, updated_at = $2 WHERE user_id = $3',
+        [input.currentBodyWeight, now, userId]
+      );
+    }
+
     return result.rows[0] ?? null;
   }
 
   db.prepare(
-    'UPDATE workouts SET plan_id=?, exercise=?, reps=?, weight=?, notes=?, performed_at=?, updated_at=? WHERE id=? AND user_id=?'
+    'UPDATE workouts SET plan_id=?, title=?, exercise=?, sets=?, reps=?, weight=?, tonnage=?, intensity=?, body_weight=?, notes=?, performed_at=?, updated_at=? WHERE id=? AND user_id=?'
   ).run(
     input.planId ?? null,
+    input.title,
     input.exercise,
+    input.sets,
     input.reps,
     input.weight,
+    input.sets * input.reps * input.weight,
+    input.intensity,
+    input.currentBodyWeight ?? null,
     input.notes ?? '',
     input.performedAt ?? now,
     now,
     id,
     userId
   );
+
+  if (typeof input.currentBodyWeight === 'number') {
+    db.prepare('UPDATE user_profiles SET current_weight = ?, updated_at = ? WHERE user_id = ?').run(
+      input.currentBodyWeight,
+      now,
+      userId
+    );
+  }
 
   return db.prepare('SELECT * FROM workouts WHERE id = ? AND user_id = ?').get(id, userId) ?? null;
 }

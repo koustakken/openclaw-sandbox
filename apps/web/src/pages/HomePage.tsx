@@ -28,9 +28,14 @@ type UserProfile = {
 
 type Workout = {
   id: string;
+  title: string;
   exercise: string;
+  sets: number;
   reps: number;
   weight: number;
+  tonnage: number;
+  intensity: 'light' | 'medium' | 'heavy';
+  body_weight?: number | null;
   notes?: string;
   performed_at: string;
   plan_id?: string | null;
@@ -82,9 +87,14 @@ export function HomePage() {
   const [dateFilter, setDateFilter] = useState<'all' | '7d' | '30d'>('all');
   const [showNewWorkout, setShowNewWorkout] = useState(false);
 
+  const [newTitle, setNewTitle] = useState('Тренировка');
   const [newExercise, setNewExercise] = useState('');
+  const [customExercise, setCustomExercise] = useState('');
+  const [newSets, setNewSets] = useState('5');
   const [newReps, setNewReps] = useState('5');
   const [newWeight, setNewWeight] = useState('100');
+  const [newIntensity, setNewIntensity] = useState<'light' | 'medium' | 'heavy'>('medium');
+  const [newBodyWeight, setNewBodyWeight] = useState('');
   const [newPlanId, setNewPlanId] = useState('');
   const [newDate, setNewDate] = useState(new Date().toISOString().slice(0, 10));
 
@@ -226,6 +236,32 @@ export function HomePage() {
 
             {isOwn && showNewWorkout && (
               <div className={css.newWorkoutForm}>
+                <input
+                  className={css.input}
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  placeholder="Название тренировки"
+                />
+                <input
+                  className={css.input}
+                  value={customExercise}
+                  onChange={(e) => setCustomExercise(e.target.value)}
+                  placeholder="Кастомное упражнение"
+                />
+                <button
+                  className={css.ghostBtn}
+                  type="button"
+                  onClick={async () => {
+                    if (!customExercise.trim()) return;
+                    await api.addExercise(customExercise.trim());
+                    setNewExercise(customExercise.trim());
+                    setCustomExercise('');
+                    await refresh();
+                  }}
+                >
+                  + Добавить упражнение
+                </button>
+
                 <select
                   className={css.select}
                   value={newExercise}
@@ -239,6 +275,12 @@ export function HomePage() {
                 </select>
                 <input
                   className={css.input}
+                  value={newSets}
+                  onChange={(e) => setNewSets(e.target.value)}
+                  placeholder="Подходы"
+                />
+                <input
+                  className={css.input}
                   value={newReps}
                   onChange={(e) => setNewReps(e.target.value)}
                   placeholder="Повторы"
@@ -248,6 +290,21 @@ export function HomePage() {
                   value={newWeight}
                   onChange={(e) => setNewWeight(e.target.value)}
                   placeholder="Вес"
+                />
+                <select
+                  className={css.select}
+                  value={newIntensity}
+                  onChange={(e) => setNewIntensity(e.target.value as 'light' | 'medium' | 'heavy')}
+                >
+                  <option value="light">Лёгкая</option>
+                  <option value="medium">Средняя</option>
+                  <option value="heavy">Тяжёлая</option>
+                </select>
+                <input
+                  className={css.input}
+                  value={newBodyWeight}
+                  onChange={(e) => setNewBodyWeight(e.target.value)}
+                  placeholder="Актуальный вес (кг)"
                 />
                 <select
                   className={css.select}
@@ -267,14 +324,21 @@ export function HomePage() {
                   value={newDate}
                   onChange={(e) => setNewDate(e.target.value)}
                 />
+                <div className={css.tonnagePreview}>
+                  Тоннаж: {Number(newSets || 0) * Number(newReps || 0) * Number(newWeight || 0)} кг
+                </div>
                 <button
                   className={css.newBtn}
                   type="button"
                   onClick={async () => {
                     await api.createWorkout({
+                      title: newTitle,
                       exercise: newExercise,
+                      sets: Number(newSets),
                       reps: Number(newReps),
                       weight: Number(newWeight),
+                      intensity: newIntensity,
+                      currentBodyWeight: newBodyWeight ? Number(newBodyWeight) : undefined,
                       planId: newPlanId || undefined,
                       performedAt: new Date(newDate).toISOString()
                     });
@@ -295,13 +359,20 @@ export function HomePage() {
               filteredWorkouts.map((w) => (
                 <div className={css.repoItem} key={w.id}>
                   <div className={css.repoLeft}>
-                    <div className={css.repoTitle}>{w.exercise}</div>
+                    <div className={css.repoTitle}>{w.title || w.exercise}</div>
                     <div className={css.repoMeta}>
-                      План: {w.plan_title || 'Без плана'} ·{' '}
-                      {new Date(w.performed_at).toLocaleDateString()}
+                      {new Date(w.performed_at).toLocaleDateString()} · {w.exercise} · План:{' '}
+                      {w.plan_title || 'Без плана'} · Нагрузка:{' '}
+                      {w.intensity === 'heavy'
+                        ? 'Тяжёлая'
+                        : w.intensity === 'medium'
+                          ? 'Средняя'
+                          : 'Лёгкая'}
                     </div>
                   </div>
-                  <div className={css.repoRight}>{Math.round(w.reps * w.weight)} кг</div>
+                  <div className={css.repoRight}>
+                    {Math.round(w.tonnage ?? w.sets * w.reps * w.weight)} кг
+                  </div>
                 </div>
               ))
             )}

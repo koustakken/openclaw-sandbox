@@ -132,9 +132,14 @@ export const api = {
     request<
       Array<{
         id: string;
+        title: string;
         exercise: string;
+        sets: number;
         reps: number;
         weight: number;
+        tonnage: number;
+        intensity: 'light' | 'medium' | 'heavy';
+        body_weight?: number | null;
         notes?: string;
         performed_at: string;
         plan_id?: string | null;
@@ -142,22 +147,30 @@ export const api = {
       }>
     >('/training/workouts'),
   createWorkout: (payload: {
+    title: string;
     exercise: string;
+    sets: number;
     reps: number;
     weight: number;
+    intensity: 'light' | 'medium' | 'heavy';
     notes?: string;
     performedAt?: string;
     planId?: string;
+    currentBodyWeight?: number;
   }) => request('/training/workouts', { method: 'POST', body: JSON.stringify(payload) }),
   updateWorkout: (
     id: string,
     payload: {
+      title: string;
       exercise: string;
+      sets: number;
       reps: number;
       weight: number;
+      intensity: 'light' | 'medium' | 'heavy';
       notes?: string;
       performedAt?: string;
       planId?: string;
+      currentBodyWeight?: number;
     }
   ) => request(`/training/workouts/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
   deleteWorkout: (id: string) => request(`/training/workouts/${id}`, { method: 'DELETE' }),
@@ -219,9 +232,14 @@ export const api = {
       };
       workouts: Array<{
         id: string;
+        title: string;
         exercise: string;
+        sets: number;
         reps: number;
         weight: number;
+        tonnage: number;
+        intensity: 'light' | 'medium' | 'heavy';
+        body_weight?: number | null;
         notes?: string;
         performed_at: string;
         plan_id?: string | null;

@@ -96,11 +96,29 @@
   font-weight: 600;
 }
 
+.ghostBtn {
+  border: 1px solid #d0d7de;
+  background: #f6f8fa;
+  color: #24292f;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.tonnagePreview {
+  display: grid;
+  place-items: center;
+  border: 1px dashed #d0d7de;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #57606a;
+}
+
 .newWorkoutForm {
   padding: 12px;
   border-bottom: 1px solid #d8dee4;
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 
