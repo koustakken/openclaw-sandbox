@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { Notification } from '../components/ui/Notification';
 import { UserSidebarCard } from '../components/UserSidebarCard';
 import { api } from '../shared/api';
@@ -68,7 +68,6 @@ const mockFollowingActivity = [
 ];
 
 export function HomePage() {
-  const navigate = useNavigate();
   const { username } = useParams();
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -98,12 +97,7 @@ export function HomePage() {
       const followList = await api.listFollowing();
       setMyFollowing(followList.map((f) => f.username));
 
-      if (!username) {
-        navigate(`/${ownProfile.username}`, { replace: true });
-        return;
-      }
-
-      if (username !== ownProfile.username) {
+      if (username && username !== ownProfile.username) {
         const page = await api.getUserPage(username);
         setDashboard(page.dashboard);
         setProfile(page.user);

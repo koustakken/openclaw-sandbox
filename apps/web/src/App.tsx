@@ -7,6 +7,7 @@ import { LoginPage } from './pages/LoginPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { RegisterPage } from './pages/RegisterPage';
+import { RootRedirectPage } from './pages/RootRedirectPage';
 
 const router = createBrowserRouter(
   [
@@ -24,7 +25,7 @@ const router = createBrowserRouter(
           path: '/',
           element: <Layout />,
           children: [
-            { index: true, element: <HomePage /> },
+            { index: true, element: <RootRedirectPage /> },
             { path: 'profile', element: <ProfilePage /> },
             { path: ':username', element: <HomePage /> },
             { path: '*', element: <NotFoundPage /> }
