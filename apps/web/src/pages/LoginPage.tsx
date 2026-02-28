@@ -23,7 +23,8 @@ export function LoginPage() {
         accessToken: result.accessToken,
         refreshToken: result.refreshToken
       });
-      navigate('/profile');
+      const profile = await api.getProfile();
+      navigate(`/${profile.username}`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Login failed');
     }
