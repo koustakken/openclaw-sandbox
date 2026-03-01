@@ -27,8 +27,8 @@ export function AppHeader({ onLogout }: Props) {
     );
   };
 
-  const isOverviewActive = /^\/[^/]+\/?$/.test(location.pathname);
   const isPlansActive = location.pathname === '/plans';
+  const isOverviewActive = /^\/[^/]+\/?$/.test(location.pathname) && !isPlansActive;
 
   return (
     <header className={css.header}>
