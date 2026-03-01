@@ -115,8 +115,6 @@
 }
 
 .newWorkoutForm {
-  padding: 12px;
-  border-bottom: 1px solid #d8dee4;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
@@ -152,6 +150,18 @@
 .repoRight {
   font-weight: 700;
   align-self: center;
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+
+.deleteBtn {
+  border: 1px solid #d0d7de;
+  background: #fff;
+  color: #cf222e;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
 }
 
 .activityColumn {
@@ -229,4 +239,37 @@
   border-radius: 6px;
   padding: 8px 10px;
   font-size: 13px;
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(9, 30, 66, 0.45);
+  display: grid;
+  place-items: center;
+  z-index: 100;
+}
+
+.modalCard {
+  width: min(920px, calc(100vw - 32px));
+  background: #fff;
+  border: 1px solid #d0d7de;
+  border-radius: 10px;
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.closeBtn {
+  border: 1px solid #d0d7de;
+  background: #fff;
+  border-radius: 6px;
+  width: 30px;
+  height: 30px;
 }

@@ -227,9 +227,9 @@ export function HomePage() {
                 <button
                   className={css.newBtn}
                   type="button"
-                  onClick={() => setShowNewWorkout((v) => !v)}
+                  onClick={() => setShowNewWorkout(true)}
                 >
-                  {showNewWorkout ? 'Закрыть' : 'Новая тренировка'}
+                  Новая тренировка
                 </button>
               )}
             </div>
@@ -398,6 +398,139 @@ export function HomePage() {
           </button>
         </aside>
       </div>
+
+      {isOwn && showNewWorkout && (
+        <div className={css.modalOverlay} onClick={() => setShowNewWorkout(false)}>
+          <div className={css.modalCard} onClick={(e) => e.stopPropagation()}>
+            <div className={css.modalHeader}>
+              <h3>Новая тренировка</h3>
+              <button
+                className={css.closeBtn}
+                type="button"
+                onClick={() => setShowNewWorkout(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className={css.newWorkoutForm}>
+              <input
+                className={css.input}
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                placeholder="Название тренировки"
+              />
+              <input
+                className={css.input}
+                value={customExercise}
+                onChange={(e) => setCustomExercise(e.target.value)}
+                placeholder="Кастомное упражнение"
+              />
+              <button
+                className={css.ghostBtn}
+                type="button"
+                onClick={async () => {
+                  if (!customExercise.trim()) return;
+                  await api.addExercise(customExercise.trim());
+                  setNewExercise(customExercise.trim());
+                  setCustomExercise('');
+                  await refresh();
+                }}
+              >
+                + Добавить упражнение
+              </button>
+
+              <select
+                className={css.select}
+                value={newExercise}
+                onChange={(e) => setNewExercise(e.target.value)}
+              >
+                {exercises.map((e) => (
+                  <option key={e.id} value={e.name}>
+                    {e.name}
+                  </option>
+                ))}
+              </select>
+              <input
+                className={css.input}
+                value={newSets}
+                onChange={(e) => setNewSets(e.target.value)}
+                placeholder="Подходы"
+              />
+              <input
+                className={css.input}
+                value={newReps}
+                onChange={(e) => setNewReps(e.target.value)}
+                placeholder="Повторы"
+              />
+              <input
+                className={css.input}
+                value={newWeight}
+                onChange={(e) => setNewWeight(e.target.value)}
+                placeholder="Вес"
+              />
+              <select
+                className={css.select}
+                value={newIntensity}
+                onChange={(e) => setNewIntensity(e.target.value as 'light' | 'medium' | 'heavy')}
+              >
+                <option value="light">Лёгкая</option>
+                <option value="medium">Средняя</option>
+                <option value="heavy">Тяжёлая</option>
+              </select>
+              <input
+                className={css.input}
+                value={newBodyWeight}
+                onChange={(e) => setNewBodyWeight(e.target.value)}
+                placeholder="Актуальный вес (кг)"
+              />
+              <select
+                className={css.select}
+                value={newPlanId}
+                onChange={(e) => setNewPlanId(e.target.value)}
+              >
+                <option value="">Без плана</option>
+                {plans.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.title}
+                  </option>
+                ))}
+              </select>
+              <input
+                className={css.input}
+                type="date"
+                value={newDate}
+                onChange={(e) => setNewDate(e.target.value)}
+              />
+              <div className={css.tonnagePreview}>
+                Тоннаж: {Number(newSets || 0) * Number(newReps || 0) * Number(newWeight || 0)} кг
+              </div>
+            </div>
+
+            <button
+              className={css.newBtn}
+              type="button"
+              onClick={async () => {
+                await api.createWorkout({
+                  title: newTitle,
+                  exercise: newExercise,
+                  sets: Number(newSets),
+                  reps: Number(newReps),
+                  weight: Number(newWeight),
+                  intensity: newIntensity,
+                  currentBodyWeight: newBodyWeight ? Number(newBodyWeight) : undefined,
+                  planId: newPlanId || undefined,
+                  performedAt: new Date(newDate).toISOString()
+                });
+                await refresh();
+                setShowNewWorkout(false);
+              }}
+            >
+              Добавить тренировку
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
