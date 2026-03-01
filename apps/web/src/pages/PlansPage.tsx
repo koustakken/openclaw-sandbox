@@ -73,6 +73,12 @@ function formatEventText(eventType: string, payloadJson: string) {
   return eventType;
 }
 
+function formatPlanStatus(status: Plan['status']) {
+  if (status === 'draft') return 'Черновик';
+  if (status === 'active') return 'Активный';
+  return 'Архив';
+}
+
 export function PlansPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
@@ -233,10 +239,20 @@ export function PlansPage() {
             >
               <div className={css.planTop}>
                 <strong>{p.title}</strong>
-                <span className={css.role}>{p.role === 'owner' ? 'Owner' : 'Editor'}</span>
+                <span
+                  className={`${css.roleBadge} ${p.role === 'owner' ? css.roleOwner : css.roleEditor}`}
+                >
+                  {p.role === 'owner' ? 'Owner' : 'Editor'}
+                </span>
               </div>
-              <div className={css.meta}>
-                v{p.version} · {new Date(p.updated_at).toLocaleDateString()}
+              <div className={css.planMetaRow}>
+                <span className={`${css.statusBadge} ${css[`status_${p.status}`]}`}>
+                  {formatPlanStatus(p.status)}
+                </span>
+                <span className={css.meta}>v{p.version}</span>
+                <span className={css.meta}>
+                  {new Date(p.updated_at).toLocaleDateString('ru-RU')}
+                </span>
               </div>
             </button>
           ))}
