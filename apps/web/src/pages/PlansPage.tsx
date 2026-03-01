@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { HotTable } from '@handsontable/react';
-import type Handsontable from 'handsontable';
 import { registerAllModules } from 'handsontable/registry';
 import 'handsontable/styles/handsontable.min.css';
 import 'handsontable/styles/ht-theme-main.min.css';
@@ -52,16 +51,8 @@ type PlanActivity = {
   createdAt: string;
 };
 
-type PlanTableRow = {
-  id: string;
-  day: string;
-  exercise: string;
-  weight: number;
-  reps: number;
-  sets: number;
-  intensity: string;
-  notes: string;
-};
+type PlanTableCell = string | number | null;
+type PlanTableData = PlanTableCell[][];
 
 function formatEventText(eventType: string, payloadJson: string) {
   let payload: Record<string, unknown> = {};
@@ -99,40 +90,33 @@ function formatPlanStatus(status: Plan['status']) {
 
 const TABLE_PREFIX = '__TABLE_JSON__\n';
 
-function createEmptyRow(): PlanTableRow {
-  return {
-    id: crypto.randomUUID(),
-    day: '',
-    exercise: '',
-    weight: 0,
-    reps: 0,
-    sets: 0,
-    intensity: '',
-    notes: ''
-  };
+const DEFAULT_ROWS = 20;
+const DEFAULT_COLS = 10;
+
+function createEmptyTable(rows = DEFAULT_ROWS, cols = DEFAULT_COLS): PlanTableData {
+  return Array.from({ length: rows }, () => Array.from({ length: cols }, () => ''));
 }
 
-function parsePlanTable(content: string): PlanTableRow[] {
-  if (!content) return [createEmptyRow()];
+function parsePlanTable(content: string): PlanTableData {
+  if (!content) return createEmptyTable();
 
   if (content.startsWith(TABLE_PREFIX)) {
     try {
-      const rows = JSON.parse(content.slice(TABLE_PREFIX.length)) as PlanTableRow[];
-      return rows.length > 0 ? rows : [createEmptyRow()];
+      const rows = JSON.parse(content.slice(TABLE_PREFIX.length)) as unknown;
+      if (!Array.isArray(rows)) return createEmptyTable();
+      const table = rows.filter(Array.isArray) as PlanTableData;
+      return table.length > 0 ? table : createEmptyTable();
     } catch {
-      return [createEmptyRow()];
+      return createEmptyTable();
     }
   }
 
-  return [
-    {
-      ...createEmptyRow(),
-      notes: content
-    }
-  ];
+  const table = createEmptyTable();
+  table[0][0] = content;
+  return table;
 }
 
-function serializePlanTable(rows: PlanTableRow[]) {
+function serializePlanTable(rows: PlanTableData) {
   return `${TABLE_PREFIX}${JSON.stringify(rows)}`;
 }
 
@@ -149,7 +133,7 @@ export function PlansPage() {
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [tableRows, setTableRows] = useState<PlanTableRow[]>([createEmptyRow()]);
+  const [tableRows, setTableRows] = useState<PlanTableData>(createEmptyTable());
   const [status, setStatus] = useState<'draft' | 'active' | 'archived'>('draft');
   const [inviteUsername, setInviteUsername] = useState('');
   const [newMessage, setNewMessage] = useState('');
@@ -158,19 +142,6 @@ export function PlansPage() {
   const selected = useMemo(
     () => plans.find((x) => x.id === selectedPlanId) ?? null,
     [plans, selectedPlanId]
-  );
-
-  const hotColumns = useMemo<Handsontable.ColumnSettings[]>(
-    () => [
-      { data: 'day', type: 'text' },
-      { data: 'exercise', type: 'text' },
-      { data: 'weight', type: 'numeric' },
-      { data: 'reps', type: 'numeric' },
-      { data: 'sets', type: 'numeric' },
-      { data: 'intensity', type: 'text' },
-      { data: 'notes', type: 'text' }
-    ],
-    []
   );
 
   const loadBase = async () => {
@@ -309,7 +280,7 @@ export function PlansPage() {
               onClick={async () => {
                 const created = (await api.createPlan({
                   title: `Новый план ${new Date().toLocaleDateString('ru-RU')}`,
-                  content: serializePlanTable([createEmptyRow()]),
+                  content: serializePlanTable(createEmptyTable()),
                   status: 'draft'
                 })) as { id: string };
                 await loadBase();
@@ -371,25 +342,21 @@ export function PlansPage() {
                     </select>
                   </label>
                   <div className={css.full}>
-                    <span className={css.gridLabel}>Таблица плана (Excel-стиль)</span>
+                    <span className={css.gridLabel}>
+                      Таблица плана (полностью свободная, как в Excel)
+                    </span>
                     <div className={css.tableActions}>
                       <button
                         className={css.ghostBtn}
                         type="button"
-                        onClick={() => setTableRows((prev) => [...prev, createEmptyRow()])}
-                      >
-                        + Строка
-                      </button>
-                      <button
-                        className={css.ghostBtn}
-                        type="button"
                         onClick={() =>
-                          setTableRows((prev) =>
-                            prev.length > 1 ? prev.slice(0, prev.length - 1) : prev
-                          )
+                          setTableRows((prev) => {
+                            const cols = Math.max(prev[0]?.length ?? 0, DEFAULT_COLS);
+                            return [...prev, Array.from({ length: cols }, () => '')];
+                          })
                         }
                       >
-                        − Удалить последнюю
+                        + Строка
                       </button>
                     </div>
                     <div className={css.gridWrap}>
@@ -397,37 +364,31 @@ export function PlansPage() {
                         className="ht-theme-main"
                         themeName="ht-theme-main"
                         data={tableRows}
-                        columns={hotColumns}
-                        colHeaders={[
-                          'День',
-                          'Упражнение',
-                          'Вес',
-                          'Повторы',
-                          'Подходы',
-                          'Интенсивность',
-                          'Комментарий'
-                        ]}
+                        colHeaders
                         rowHeaders
+                        minRows={20}
+                        minCols={10}
                         height={320}
                         width="100%"
                         stretchH="all"
                         contextMenu
                         manualColumnResize
+                        manualRowResize
+                        manualColumnMove
+                        manualRowMove
                         autoWrapRow
                         autoWrapCol
                         licenseKey="non-commercial-and-evaluation"
                         afterChange={(changes, source) => {
                           if (!changes || source === 'loadData') return;
                           setTableRows((prev) => {
-                            const next = [...prev];
+                            const next = prev.map((row) => [...row]);
                             for (const [row, prop, , newValue] of changes) {
-                              if (typeof row !== 'number' || typeof prop !== 'string') continue;
-                              const current = next[row];
-                              if (!current) continue;
-                              next[row] = {
-                                ...current,
-                                [prop]: newValue as never
-                              };
+                              if (typeof row !== 'number') continue;
+                              const col = typeof prop === 'number' ? prop : Number(prop);
+                              if (Number.isNaN(col)) continue;
+                              if (!next[row]) next[row] = [];
+                              next[row][col] = newValue as PlanTableCell;
                             }
                             return next;
                           });
