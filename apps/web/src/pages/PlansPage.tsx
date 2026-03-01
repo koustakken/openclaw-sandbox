@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { HotTable } from '@handsontable/react';
 import type Handsontable from 'handsontable';
+import { registerAllModules } from 'handsontable/registry';
 import 'handsontable/styles/handsontable.min.css';
 import 'handsontable/styles/ht-theme-main.min.css';
 import { Notification } from '../components/ui/Notification';
 import { api } from '../shared/api';
 import css from './PlansPage.module.css';
+
+registerAllModules();
 
 type Plan = {
   id: string;
