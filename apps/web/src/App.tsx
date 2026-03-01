@@ -6,6 +6,7 @@ import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { PlansPage } from './pages/PlansPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { RootRedirectPage } from './pages/RootRedirectPage';
 
@@ -27,6 +28,7 @@ const router = createBrowserRouter(
           children: [
             { index: true, element: <RootRedirectPage /> },
             { path: 'profile', element: <ProfilePage /> },
+            { path: 'plans', element: <PlansPage /> },
             { path: ':username', element: <HomePage /> },
             { path: '*', element: <NotFoundPage /> }
           ]

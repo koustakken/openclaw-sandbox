@@ -4,6 +4,7 @@ import { type AuthenticatedRequest, requireAuth } from '../middleware/authMiddle
 import {
   addAthlete,
   addPlanComment,
+  addPlanMessage,
   createExercise,
   followUser,
   createPlan,
@@ -12,12 +13,20 @@ import {
   deleteWorkout,
   deleteAllWorkouts,
   getDashboard,
+  getPlanById,
   getUserProfile,
+  invitePlanEditor,
   listExercises,
   listFollowing,
+  listMyPlanInvitations,
+  listPlanActivity,
+  listPlanEditors,
+  listPlanMessages,
   listPlans,
   listWorkouts,
   getUserByUsername,
+  removePlanEditor,
+  respondToPlanInvitation,
   searchUsers,
   unfollowUser,
   updatePlan,
@@ -56,6 +65,9 @@ const profileSchema = z.object({
   weightCategory: z.string().optional(),
   currentWeight: z.number().nonnegative().optional()
 });
+
+const inviteEditorSchema = z.object({ username: z.string().min(1) });
+const planMessageSchema = z.object({ text: z.string().min(1) });
 
 trainingRouter.get('/dashboard', async (req: AuthenticatedRequest, res) => {
   const userId = req.auth?.sub;
@@ -164,20 +176,186 @@ trainingRouter.post('/plans', async (req: AuthenticatedRequest, res) => {
   return res.status(201).json(await createPlan(userId, payload));
 });
 
-trainingRouter.put('/plans/:id', async (req: AuthenticatedRequest, res) => {
+trainingRouter.get('/plans/invitations', async (req: AuthenticatedRequest, res) => {
   const userId = req.auth?.sub;
   if (!userId) return res.status(401).json({ message: 'Unauthorized' });
-  const payload = planSchema.parse(req.body);
-  const updated = await updatePlan(userId, req.params.id, payload);
-  if (!updated) return res.status(404).json({ message: 'Plan not found' });
-  return res.json(updated);
+  return res.json(await listMyPlanInvitations(userId));
+});
+
+trainingRouter.post('/plans/invitations/:id/accept', async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.auth?.sub;
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+    return res.json(await respondToPlanInvitation(userId, req.params.id, 'accept'));
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === 'INVITATION_NOT_FOUND') {
+      return res.status(404).json({ message: 'Invitation not found' });
+    }
+    if (err instanceof Error && err.message === 'INVITATION_ALREADY_RESOLVED') {
+      return res.status(409).json({ message: 'Invitation already resolved' });
+    }
+    return res.status(400).json({ message: 'Cannot accept invitation' });
+  }
+});
+
+trainingRouter.post('/plans/invitations/:id/reject', async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.auth?.sub;
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+    return res.json(await respondToPlanInvitation(userId, req.params.id, 'reject'));
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === 'INVITATION_NOT_FOUND') {
+      return res.status(404).json({ message: 'Invitation not found' });
+    }
+    if (err instanceof Error && err.message === 'INVITATION_ALREADY_RESOLVED') {
+      return res.status(409).json({ message: 'Invitation already resolved' });
+    }
+    return res.status(400).json({ message: 'Cannot reject invitation' });
+  }
+});
+
+trainingRouter.get('/plans/:id', async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.auth?.sub;
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+    const plan = await getPlanById(userId, req.params.id);
+    if (!plan) return res.status(404).json({ message: 'Plan not found' });
+    return res.json(plan);
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === 'FORBIDDEN') {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    return res.status(400).json({ message: 'Cannot read plan' });
+  }
+});
+
+trainingRouter.put('/plans/:id', async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.auth?.sub;
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+    const payload = planSchema.parse(req.body);
+    const updated = await updatePlan(userId, req.params.id, payload);
+    if (!updated) return res.status(404).json({ message: 'Plan not found' });
+    return res.json(updated);
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === 'FORBIDDEN') {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    return res.status(400).json({ message: 'Cannot update plan' });
+  }
 });
 
 trainingRouter.delete('/plans/:id', async (req: AuthenticatedRequest, res) => {
-  const userId = req.auth?.sub;
-  if (!userId) return res.status(401).json({ message: 'Unauthorized' });
-  await deletePlan(userId, req.params.id);
-  return res.status(204).send();
+  try {
+    const userId = req.auth?.sub;
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+    await deletePlan(userId, req.params.id);
+    return res.status(204).send();
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === 'FORBIDDEN') {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    return res.status(400).json({ message: 'Cannot delete plan' });
+  }
+});
+
+trainingRouter.get('/plans/:id/editors', async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.auth?.sub;
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+    return res.json(await listPlanEditors(userId, req.params.id));
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === 'FORBIDDEN') {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    return res.status(400).json({ message: 'Cannot list editors' });
+  }
+});
+
+trainingRouter.post('/plans/:id/invitations', async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.auth?.sub;
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+    const payload = inviteEditorSchema.parse(req.body);
+    return res.status(201).json(await invitePlanEditor(userId, req.params.id, payload.username));
+  } catch (err: unknown) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Invalid input', issues: err.issues });
+    }
+    if (err instanceof Error && err.message === 'FORBIDDEN') {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    if (err instanceof Error && err.message === 'USER_NOT_FOUND') {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    if (err instanceof Error && err.message === 'ALREADY_EDITOR') {
+      return res.status(409).json({ message: 'User is already editor' });
+    }
+    if (err instanceof Error && err.message === 'INVITE_ALREADY_PENDING') {
+      return res.status(409).json({ message: 'Invite already pending' });
+    }
+    if (err instanceof Error && err.message === 'CANNOT_INVITE_OWNER') {
+      return res.status(400).json({ message: 'Owner cannot be invited' });
+    }
+    return res.status(400).json({ message: 'Cannot invite editor' });
+  }
+});
+
+trainingRouter.delete('/plans/:id/editors/:userId', async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.auth?.sub;
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+    await removePlanEditor(userId, req.params.id, req.params.userId);
+    return res.status(204).send();
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === 'FORBIDDEN') {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    return res.status(400).json({ message: 'Cannot remove editor' });
+  }
+});
+
+trainingRouter.get('/plans/:id/messages', async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.auth?.sub;
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+    return res.json(await listPlanMessages(userId, req.params.id));
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === 'FORBIDDEN') {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    return res.status(400).json({ message: 'Cannot list messages' });
+  }
+});
+
+trainingRouter.post('/plans/:id/messages', async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.auth?.sub;
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+    const payload = planMessageSchema.parse(req.body);
+    return res.status(201).json(await addPlanMessage(userId, req.params.id, payload.text));
+  } catch (err: unknown) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Invalid input', issues: err.issues });
+    }
+    if (err instanceof Error && err.message === 'FORBIDDEN') {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    return res.status(400).json({ message: 'Cannot add message' });
+  }
+});
+
+trainingRouter.get('/plans/:id/activity', async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.auth?.sub;
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+    return res.json(await listPlanActivity(userId, req.params.id));
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === 'FORBIDDEN') {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    return res.status(400).json({ message: 'Cannot list activity' });
+  }
 });
 
 trainingRouter.get('/workouts', async (req: AuthenticatedRequest, res) => {

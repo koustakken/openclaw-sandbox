@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../shared/api';
 import css from './AppHeader.module.css';
 
@@ -9,6 +9,7 @@ type Props = {
 
 export function AppHeader({ onLogout }: Props) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<
     Array<{ username: string; firstName: string; lastName: string }>
@@ -25,6 +26,9 @@ export function AppHeader({ onLogout }: Props) {
       found.map((u) => ({ username: u.username, firstName: u.firstName, lastName: u.lastName }))
     );
   };
+
+  const isOverviewActive = /^\/[^/]+\/?$/.test(location.pathname);
+  const isPlansActive = location.pathname === '/plans';
 
   return (
     <header className={css.header}>
@@ -70,13 +74,12 @@ export function AppHeader({ onLogout }: Props) {
       </div>
 
       <nav className={css.tabs}>
-        <NavLink
-          to="/"
-          end
-          className={({ isActive }) => `${css.tab} ${isActive ? css.tabActive : ''}`}
-        >
+        <Link to="/" className={`${css.tab} ${isOverviewActive ? css.tabActive : ''}`}>
           <span>🏠</span> Overview
-        </NavLink>
+        </Link>
+        <Link to="/plans" className={`${css.tab} ${isPlansActive ? css.tabActive : ''}`}>
+          <span>📋</span> Plans
+        </Link>
       </nav>
     </header>
   );

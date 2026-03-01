@@ -115,9 +115,29 @@ export const api = {
       body: JSON.stringify({ name })
     }),
   listPlans: () =>
-    request<Array<{ id: string; title: string; content: string; status: string; version: number }>>(
-      '/training/plans'
-    ),
+    request<
+      Array<{
+        id: string;
+        title: string;
+        content: string;
+        status: string;
+        version: number;
+        user_id: string;
+        updated_at: string;
+        role: 'owner' | 'editor';
+      }>
+    >('/training/plans'),
+  getPlan: (id: string) =>
+    request<{
+      id: string;
+      title: string;
+      content: string;
+      status: 'draft' | 'active' | 'archived';
+      version: number;
+      user_id: string;
+      updated_at: string;
+      role: 'owner' | 'editor';
+    }>(`/training/plans/${id}`),
   createPlan: (payload: {
     title: string;
     content: string;
@@ -128,6 +148,73 @@ export const api = {
     payload: { title: string; content: string; status?: 'draft' | 'active' | 'archived' }
   ) => request(`/training/plans/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
   deletePlan: (id: string) => request(`/training/plans/${id}`, { method: 'DELETE' }),
+  listPlanEditors: (id: string) =>
+    request<
+      Array<{
+        userId: string;
+        username: string;
+        firstName: string;
+        lastName: string;
+        addedAt: string;
+      }>
+    >(`/training/plans/${id}/editors`),
+  invitePlanEditor: (id: string, username: string) =>
+    request(`/training/plans/${id}/invitations`, {
+      method: 'POST',
+      body: JSON.stringify({ username })
+    }),
+  removePlanEditor: (id: string, userId: string) =>
+    request(`/training/plans/${id}/editors/${userId}`, { method: 'DELETE' }),
+  listPlanInvitations: () =>
+    request<
+      Array<{
+        id: string;
+        planId: string;
+        planTitle: string;
+        ownerUsername: string;
+        username: string;
+        invitedBy: string;
+        status: 'pending' | 'accepted' | 'rejected';
+        createdAt: string;
+        resolvedAt: string | null;
+      }>
+    >('/training/plans/invitations'),
+  acceptPlanInvitation: (id: string) =>
+    request(`/training/plans/invitations/${id}/accept`, { method: 'POST' }),
+  rejectPlanInvitation: (id: string) =>
+    request(`/training/plans/invitations/${id}/reject`, { method: 'POST' }),
+  listPlanMessages: (id: string) =>
+    request<
+      Array<{
+        id: string;
+        planId: string;
+        authorId: string;
+        authorUsername: string;
+        authorFirstName: string;
+        authorLastName: string;
+        text: string;
+        createdAt: string;
+      }>
+    >(`/training/plans/${id}/messages`),
+  addPlanMessage: (id: string, text: string) =>
+    request(`/training/plans/${id}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ text })
+    }),
+  listPlanActivity: (id: string) =>
+    request<
+      Array<{
+        id: string;
+        planId: string;
+        actorId: string;
+        actorUsername: string;
+        actorFirstName: string;
+        actorLastName: string;
+        eventType: string;
+        payloadJson: string;
+        createdAt: string;
+      }>
+    >(`/training/plans/${id}/activity`),
   listWorkouts: () =>
     request<
       Array<{

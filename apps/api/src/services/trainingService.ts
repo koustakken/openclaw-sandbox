@@ -22,6 +22,45 @@ type UserProfileInput = {
   weightCategory?: string;
   currentWeight?: number;
 };
+type PlanEditor = {
+  userId: string;
+  username: string;
+  firstName: string;
+  lastName: string;
+  addedAt: string;
+};
+type PlanInvitation = {
+  id: string;
+  planId: string;
+  planTitle: string;
+  ownerUsername: string;
+  username: string;
+  invitedBy: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: string;
+  resolvedAt: string | null;
+};
+type PlanMessage = {
+  id: string;
+  planId: string;
+  authorId: string;
+  authorUsername: string;
+  authorFirstName: string;
+  authorLastName: string;
+  text: string;
+  createdAt: string;
+};
+type PlanActivity = {
+  id: string;
+  planId: string;
+  actorId: string;
+  actorUsername: string;
+  actorFirstName: string;
+  actorLastName: string;
+  eventType: string;
+  payloadJson: string;
+  createdAt: string;
+};
 type WorkoutInput = {
   title: string;
   exercise: string;
@@ -121,6 +160,42 @@ async function ensureSchema() {
       following_id TEXT NOT NULL,
       created_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS plan_editors (
+      id TEXT PRIMARY KEY,
+      plan_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      invited_by TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      UNIQUE(plan_id, user_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS plan_invitations (
+      id TEXT PRIMARY KEY,
+      plan_id TEXT NOT NULL,
+      username TEXT NOT NULL,
+      invited_by TEXT NOT NULL,
+      status TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      resolved_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS plan_messages (
+      id TEXT PRIMARY KEY,
+      plan_id TEXT NOT NULL,
+      author_id TEXT NOT NULL,
+      text TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS plan_activity (
+      id TEXT PRIMARY KEY,
+      plan_id TEXT NOT NULL,
+      actor_id TEXT NOT NULL,
+      event_type TEXT NOT NULL,
+      payload_json TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
   `;
 
   const pgSql = `
@@ -205,6 +280,42 @@ async function ensureSchema() {
       following_id TEXT NOT NULL,
       created_at TEXT NOT NULL,
       UNIQUE(follower_id, following_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS plan_editors (
+      id TEXT PRIMARY KEY,
+      plan_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      invited_by TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      UNIQUE(plan_id, user_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS plan_invitations (
+      id TEXT PRIMARY KEY,
+      plan_id TEXT NOT NULL,
+      username TEXT NOT NULL,
+      invited_by TEXT NOT NULL,
+      status TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      resolved_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS plan_messages (
+      id TEXT PRIMARY KEY,
+      plan_id TEXT NOT NULL,
+      author_id TEXT NOT NULL,
+      text TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS plan_activity (
+      id TEXT PRIMARY KEY,
+      plan_id TEXT NOT NULL,
+      actor_id TEXT NOT NULL,
+      event_type TEXT NOT NULL,
+      payload_json TEXT NOT NULL,
+      created_at TEXT NOT NULL
     );
   `;
 
@@ -597,17 +708,111 @@ export async function createExercise(userId: string, name: string) {
   return { id, name, isBase: false };
 }
 
+async function logPlanActivity(
+  planId: string,
+  actorId: string,
+  eventType: string,
+  payload: Record<string, unknown> = {}
+) {
+  const id = crypto.randomUUID();
+  const createdAt = new Date().toISOString();
+  const payloadJson = JSON.stringify(payload);
+
+  if (pool) {
+    await pool.query(
+      'INSERT INTO plan_activity (id, plan_id, actor_id, event_type, payload_json, created_at) VALUES ($1,$2,$3,$4,$5,$6)',
+      [id, planId, actorId, eventType, payloadJson, createdAt]
+    );
+    return;
+  }
+
+  db.prepare(
+    'INSERT INTO plan_activity (id, plan_id, actor_id, event_type, payload_json, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(id, planId, actorId, eventType, payloadJson, createdAt);
+}
+
+async function getPlanRole(userId: string, planId: string): Promise<'owner' | 'editor' | null> {
+  if (pool) {
+    const owner = await pool.query('SELECT id FROM plans WHERE id = $1 AND user_id = $2 LIMIT 1', [
+      planId,
+      userId
+    ]);
+    if (owner.rows[0]) return 'owner';
+
+    const editor = await pool.query(
+      'SELECT id FROM plan_editors WHERE plan_id = $1 AND user_id = $2 LIMIT 1',
+      [planId, userId]
+    );
+    return editor.rows[0] ? 'editor' : null;
+  }
+
+  const owner = db.prepare('SELECT id FROM plans WHERE id = ? AND user_id = ?').get(planId, userId);
+  if (owner) return 'owner';
+
+  const editor = db
+    .prepare('SELECT id FROM plan_editors WHERE plan_id = ? AND user_id = ?')
+    .get(planId, userId);
+  return editor ? 'editor' : null;
+}
+
+async function assertPlanRole(
+  userId: string,
+  planId: string,
+  roles: Array<'owner' | 'editor'>
+): Promise<'owner' | 'editor'> {
+  const role = await getPlanRole(userId, planId);
+  if (!role || !roles.includes(role)) {
+    throw new Error('FORBIDDEN');
+  }
+  return role;
+}
+
 export async function listPlans(userId: string) {
   await ensureSchema();
   if (pool) {
     const result = await pool.query(
-      'SELECT * FROM plans WHERE user_id = $1 ORDER BY updated_at DESC',
+      `SELECT p.*, CASE WHEN p.user_id = $1 THEN 'owner' ELSE 'editor' END as role
+       FROM plans p
+       LEFT JOIN plan_editors pe ON pe.plan_id = p.id
+       WHERE p.user_id = $1 OR pe.user_id = $1
+       GROUP BY p.id
+       ORDER BY p.updated_at DESC`,
       [userId]
     );
     return result.rows;
   }
 
-  return db.prepare('SELECT * FROM plans WHERE user_id = ? ORDER BY updated_at DESC').all(userId);
+  return db
+    .prepare(
+      `SELECT p.*, CASE WHEN p.user_id = ? THEN 'owner' ELSE 'editor' END as role
+       FROM plans p
+       LEFT JOIN plan_editors pe ON pe.plan_id = p.id
+       WHERE p.user_id = ? OR pe.user_id = ?
+       GROUP BY p.id
+       ORDER BY p.updated_at DESC`
+    )
+    .all(userId, userId, userId);
+}
+
+export async function getPlanById(userId: string, id: string) {
+  await ensureSchema();
+  await assertPlanRole(userId, id, ['owner', 'editor']);
+
+  if (pool) {
+    const result = await pool.query(
+      "SELECT p.*, CASE WHEN p.user_id = $1 THEN 'owner' ELSE 'editor' END as role FROM plans p WHERE p.id = $2 LIMIT 1",
+      [userId, id]
+    );
+    return result.rows[0] ?? null;
+  }
+
+  return (
+    db
+      .prepare(
+        "SELECT p.*, CASE WHEN p.user_id = ? THEN 'owner' ELSE 'editor' END as role FROM plans p WHERE p.id = ? LIMIT 1"
+      )
+      .get(userId, id) ?? null
+  );
 }
 
 export async function createPlan(userId: string, input: PlanInput) {
@@ -660,24 +865,32 @@ export async function createPlan(userId: string, input: PlanInput) {
     ).run(crypto.randomUUID(), plan.id, 1, plan.title, plan.content, now);
   }
 
-  return plan;
+  await logPlanActivity(plan.id, userId, 'plan.created', {
+    title: plan.title,
+    status: plan.status,
+    version: 1
+  });
+
+  return { ...plan, role: 'owner' as const };
 }
 
 export async function updatePlan(userId: string, id: string, input: PlanInput) {
   await ensureSchema();
   const now = new Date().toISOString();
+  const role = await getPlanRole(userId, id);
+  if (!role) return null;
 
   if (pool) {
     const existing = await pool.query<{ version: number }>(
-      'SELECT version FROM plans WHERE id = $1 AND user_id = $2 LIMIT 1',
-      [id, userId]
+      'SELECT version FROM plans WHERE id = $1 LIMIT 1',
+      [id]
     );
     if (!existing.rows[0]) return null;
     const nextVersion = Number(existing.rows[0].version) + 1;
 
     await pool.query(
-      'UPDATE plans SET title=$1, content=$2, status=$3, version=$4, updated_at=$5 WHERE id=$6 AND user_id=$7',
-      [input.title, input.content, input.status ?? 'draft', nextVersion, now, id, userId]
+      'UPDATE plans SET title=$1, content=$2, status=$3, version=$4, updated_at=$5 WHERE id=$6',
+      [input.title, input.content, input.status ?? 'draft', nextVersion, now, id]
     );
 
     await pool.query(
@@ -685,28 +898,43 @@ export async function updatePlan(userId: string, id: string, input: PlanInput) {
       [crypto.randomUUID(), id, nextVersion, input.title, input.content, now]
     );
 
+    await logPlanActivity(id, userId, 'plan.updated', {
+      title: input.title,
+      status: input.status ?? 'draft',
+      version: nextVersion,
+      role
+    });
+
     return {
       id,
       title: input.title,
       content: input.content,
       status: input.status ?? 'draft',
       version: nextVersion,
-      updatedAt: now
+      updatedAt: now,
+      role
     };
   }
 
-  const existing = db
-    .prepare('SELECT version FROM plans WHERE id = ? AND user_id = ?')
-    .get(id, userId) as { version: number } | undefined;
+  const existing = db.prepare('SELECT version FROM plans WHERE id = ?').get(id) as
+    | { version: number }
+    | undefined;
   if (!existing) return null;
   const nextVersion = existing.version + 1;
 
   db.prepare(
-    'UPDATE plans SET title=?, content=?, status=?, version=?, updated_at=? WHERE id=? AND user_id=?'
-  ).run(input.title, input.content, input.status ?? 'draft', nextVersion, now, id, userId);
+    'UPDATE plans SET title=?, content=?, status=?, version=?, updated_at=? WHERE id=?'
+  ).run(input.title, input.content, input.status ?? 'draft', nextVersion, now, id);
   db.prepare(
     'INSERT INTO plan_versions (id, plan_id, version, title, content, created_at) VALUES (?, ?, ?, ?, ?, ?)'
   ).run(crypto.randomUUID(), id, nextVersion, input.title, input.content, now);
+
+  await logPlanActivity(id, userId, 'plan.updated', {
+    title: input.title,
+    status: input.status ?? 'draft',
+    version: nextVersion,
+    role
+  });
 
   return {
     id,
@@ -714,18 +942,377 @@ export async function updatePlan(userId: string, id: string, input: PlanInput) {
     content: input.content,
     status: input.status ?? 'draft',
     version: nextVersion,
-    updatedAt: now
+    updatedAt: now,
+    role
   };
 }
 
 export async function deletePlan(userId: string, id: string) {
   await ensureSchema();
+  await assertPlanRole(userId, id, ['owner']);
+
   if (pool) {
+    await pool.query('DELETE FROM plan_editors WHERE plan_id = $1', [id]);
+    await pool.query('DELETE FROM plan_invitations WHERE plan_id = $1', [id]);
+    await pool.query('DELETE FROM plan_messages WHERE plan_id = $1', [id]);
+    await pool.query('DELETE FROM plan_activity WHERE plan_id = $1', [id]);
     await pool.query('DELETE FROM plans WHERE id = $1 AND user_id = $2', [id, userId]);
     return;
   }
 
+  db.prepare('DELETE FROM plan_editors WHERE plan_id = ?').run(id);
+  db.prepare('DELETE FROM plan_invitations WHERE plan_id = ?').run(id);
+  db.prepare('DELETE FROM plan_messages WHERE plan_id = ?').run(id);
+  db.prepare('DELETE FROM plan_activity WHERE plan_id = ?').run(id);
   db.prepare('DELETE FROM plans WHERE id = ? AND user_id = ?').run(id, userId);
+}
+
+export async function listPlanEditors(userId: string, planId: string): Promise<PlanEditor[]> {
+  await ensureSchema();
+  await assertPlanRole(userId, planId, ['owner', 'editor']);
+
+  if (pool) {
+    const result = await pool.query<PlanEditor>(
+      `SELECT pe.user_id as "userId", up.username, up.first_name as "firstName", up.last_name as "lastName", pe.created_at as "addedAt"
+       FROM plan_editors pe
+       LEFT JOIN user_profiles up ON up.user_id = pe.user_id
+       WHERE pe.plan_id = $1
+       ORDER BY pe.created_at ASC`,
+      [planId]
+    );
+    return result.rows;
+  }
+
+  return db
+    .prepare(
+      `SELECT pe.user_id as userId, up.username as username, up.first_name as firstName, up.last_name as lastName, pe.created_at as addedAt
+       FROM plan_editors pe
+       LEFT JOIN user_profiles up ON up.user_id = pe.user_id
+       WHERE pe.plan_id = ?
+       ORDER BY pe.created_at ASC`
+    )
+    .all(planId) as PlanEditor[];
+}
+
+export async function invitePlanEditor(userId: string, planId: string, username: string) {
+  await ensureSchema();
+  await assertPlanRole(userId, planId, ['owner']);
+  const normalized = username.trim().toLowerCase();
+  if (!normalized) throw new Error('INVALID_USERNAME');
+
+  const targetId = await findUserIdByUsername(normalized);
+  if (!targetId) throw new Error('USER_NOT_FOUND');
+
+  if (pool) {
+    const owner = await pool.query('SELECT user_id FROM plans WHERE id = $1 LIMIT 1', [planId]);
+    if (!owner.rows[0]) throw new Error('PLAN_NOT_FOUND');
+    if (owner.rows[0].user_id === targetId) throw new Error('CANNOT_INVITE_OWNER');
+
+    const existingEditor = await pool.query(
+      'SELECT id FROM plan_editors WHERE plan_id = $1 AND user_id = $2 LIMIT 1',
+      [planId, targetId]
+    );
+    if (existingEditor.rows[0]) throw new Error('ALREADY_EDITOR');
+
+    const pending = await pool.query(
+      "SELECT id FROM plan_invitations WHERE plan_id = $1 AND username = $2 AND status = 'pending' LIMIT 1",
+      [planId, normalized]
+    );
+    if (pending.rows[0]) throw new Error('INVITE_ALREADY_PENDING');
+
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    await pool.query(
+      'INSERT INTO plan_invitations (id, plan_id, username, invited_by, status, created_at, resolved_at) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+      [id, planId, normalized, userId, 'pending', now, null]
+    );
+    await logPlanActivity(planId, userId, 'plan.editor_invited', { username: normalized });
+    return { id, planId, username: normalized, status: 'pending' as const, createdAt: now };
+  }
+
+  const owner = db.prepare('SELECT user_id FROM plans WHERE id = ? LIMIT 1').get(planId) as
+    | { user_id: string }
+    | undefined;
+  if (!owner) throw new Error('PLAN_NOT_FOUND');
+  if (owner.user_id === targetId) throw new Error('CANNOT_INVITE_OWNER');
+
+  const existingEditor = db
+    .prepare('SELECT id FROM plan_editors WHERE plan_id = ? AND user_id = ? LIMIT 1')
+    .get(planId, targetId);
+  if (existingEditor) throw new Error('ALREADY_EDITOR');
+
+  const pending = db
+    .prepare(
+      "SELECT id FROM plan_invitations WHERE plan_id = ? AND username = ? AND status = 'pending' LIMIT 1"
+    )
+    .get(planId, normalized);
+  if (pending) throw new Error('INVITE_ALREADY_PENDING');
+
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  db.prepare(
+    'INSERT INTO plan_invitations (id, plan_id, username, invited_by, status, created_at, resolved_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).run(id, planId, normalized, userId, 'pending', now, null);
+  await logPlanActivity(planId, userId, 'plan.editor_invited', { username: normalized });
+  return { id, planId, username: normalized, status: 'pending' as const, createdAt: now };
+}
+
+export async function listMyPlanInvitations(userId: string): Promise<PlanInvitation[]> {
+  await ensureSchema();
+
+  if (pool) {
+    const myProfile = await pool.query<{ username: string }>(
+      'SELECT username FROM user_profiles WHERE user_id = $1 LIMIT 1',
+      [userId]
+    );
+    const username = (myProfile.rows[0]?.username ?? '').trim().toLowerCase();
+    if (!username) return [];
+
+    const result = await pool.query<PlanInvitation>(
+      `SELECT pi.id,
+              pi.plan_id as "planId",
+              p.title as "planTitle",
+              owner.username as "ownerUsername",
+              pi.username,
+              pi.invited_by as "invitedBy",
+              pi.status,
+              pi.created_at as "createdAt",
+              pi.resolved_at as "resolvedAt"
+       FROM plan_invitations pi
+       JOIN plans p ON p.id = pi.plan_id
+       LEFT JOIN user_profiles owner ON owner.user_id = p.user_id
+       WHERE pi.username = $1
+       ORDER BY pi.created_at DESC`,
+      [username]
+    );
+    return result.rows;
+  }
+
+  const myProfile = db
+    .prepare('SELECT username FROM user_profiles WHERE user_id = ? LIMIT 1')
+    .get(userId) as { username: string } | undefined;
+  const username = (myProfile?.username ?? '').trim().toLowerCase();
+  if (!username) return [];
+
+  return db
+    .prepare(
+      `SELECT pi.id,
+              pi.plan_id as planId,
+              p.title as planTitle,
+              owner.username as ownerUsername,
+              pi.username,
+              pi.invited_by as invitedBy,
+              pi.status,
+              pi.created_at as createdAt,
+              pi.resolved_at as resolvedAt
+       FROM plan_invitations pi
+       JOIN plans p ON p.id = pi.plan_id
+       LEFT JOIN user_profiles owner ON owner.user_id = p.user_id
+       WHERE pi.username = ?
+       ORDER BY pi.created_at DESC`
+    )
+    .all(username) as PlanInvitation[];
+}
+
+export async function respondToPlanInvitation(
+  userId: string,
+  invitationId: string,
+  decision: 'accept' | 'reject'
+) {
+  await ensureSchema();
+
+  const now = new Date().toISOString();
+  const status = decision === 'accept' ? 'accepted' : 'rejected';
+
+  if (pool) {
+    const me = await pool.query<{ username: string }>(
+      'SELECT username FROM user_profiles WHERE user_id = $1 LIMIT 1',
+      [userId]
+    );
+    const username = (me.rows[0]?.username ?? '').trim().toLowerCase();
+    if (!username) throw new Error('PROFILE_USERNAME_REQUIRED');
+
+    const invitation = await pool.query<{ plan_id: string; status: string }>(
+      'SELECT plan_id, status FROM plan_invitations WHERE id = $1 AND username = $2 LIMIT 1',
+      [invitationId, username]
+    );
+    if (!invitation.rows[0]) throw new Error('INVITATION_NOT_FOUND');
+    if (invitation.rows[0].status !== 'pending') throw new Error('INVITATION_ALREADY_RESOLVED');
+
+    await pool.query('UPDATE plan_invitations SET status = $1, resolved_at = $2 WHERE id = $3', [
+      status,
+      now,
+      invitationId
+    ]);
+
+    if (decision === 'accept') {
+      await pool.query(
+        'INSERT INTO plan_editors (id, plan_id, user_id, invited_by, created_at) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (plan_id, user_id) DO NOTHING',
+        [crypto.randomUUID(), invitation.rows[0].plan_id, userId, userId, now]
+      );
+    }
+
+    await logPlanActivity(invitation.rows[0].plan_id, userId, `plan.editor_${status}`, {
+      username
+    });
+
+    return { ok: true };
+  }
+
+  const me = db
+    .prepare('SELECT username FROM user_profiles WHERE user_id = ? LIMIT 1')
+    .get(userId) as { username: string } | undefined;
+  const username = (me?.username ?? '').trim().toLowerCase();
+  if (!username) throw new Error('PROFILE_USERNAME_REQUIRED');
+
+  const invitation = db
+    .prepare('SELECT plan_id, status FROM plan_invitations WHERE id = ? AND username = ? LIMIT 1')
+    .get(invitationId, username) as { plan_id: string; status: string } | undefined;
+  if (!invitation) throw new Error('INVITATION_NOT_FOUND');
+  if (invitation.status !== 'pending') throw new Error('INVITATION_ALREADY_RESOLVED');
+
+  db.prepare('UPDATE plan_invitations SET status = ?, resolved_at = ? WHERE id = ?').run(
+    status,
+    now,
+    invitationId
+  );
+
+  if (decision === 'accept') {
+    const exists = db
+      .prepare('SELECT id FROM plan_editors WHERE plan_id = ? AND user_id = ?')
+      .get(invitation.plan_id, userId);
+    if (!exists) {
+      db.prepare(
+        'INSERT INTO plan_editors (id, plan_id, user_id, invited_by, created_at) VALUES (?, ?, ?, ?, ?)'
+      ).run(crypto.randomUUID(), invitation.plan_id, userId, userId, now);
+    }
+  }
+
+  await logPlanActivity(invitation.plan_id, userId, `plan.editor_${status}`, { username });
+  return { ok: true };
+}
+
+export async function removePlanEditor(userId: string, planId: string, editorId: string) {
+  await ensureSchema();
+  await assertPlanRole(userId, planId, ['owner']);
+
+  if (pool) {
+    await pool.query('DELETE FROM plan_editors WHERE plan_id = $1 AND user_id = $2', [
+      planId,
+      editorId
+    ]);
+    await logPlanActivity(planId, userId, 'plan.editor_removed', { editorId });
+    return { ok: true };
+  }
+
+  db.prepare('DELETE FROM plan_editors WHERE plan_id = ? AND user_id = ?').run(planId, editorId);
+  await logPlanActivity(planId, userId, 'plan.editor_removed', { editorId });
+  return { ok: true };
+}
+
+export async function listPlanMessages(userId: string, planId: string): Promise<PlanMessage[]> {
+  await ensureSchema();
+  await assertPlanRole(userId, planId, ['owner', 'editor']);
+
+  if (pool) {
+    const result = await pool.query<PlanMessage>(
+      `SELECT pm.id,
+              pm.plan_id as "planId",
+              pm.author_id as "authorId",
+              up.username as "authorUsername",
+              up.first_name as "authorFirstName",
+              up.last_name as "authorLastName",
+              pm.text,
+              pm.created_at as "createdAt"
+       FROM plan_messages pm
+       LEFT JOIN user_profiles up ON up.user_id = pm.author_id
+       WHERE pm.plan_id = $1
+       ORDER BY pm.created_at ASC`,
+      [planId]
+    );
+    return result.rows;
+  }
+
+  return db
+    .prepare(
+      `SELECT pm.id,
+              pm.plan_id as planId,
+              pm.author_id as authorId,
+              up.username as authorUsername,
+              up.first_name as authorFirstName,
+              up.last_name as authorLastName,
+              pm.text,
+              pm.created_at as createdAt
+       FROM plan_messages pm
+       LEFT JOIN user_profiles up ON up.user_id = pm.author_id
+       WHERE pm.plan_id = ?
+       ORDER BY pm.created_at ASC`
+    )
+    .all(planId) as PlanMessage[];
+}
+
+export async function addPlanMessage(userId: string, planId: string, text: string) {
+  await ensureSchema();
+  await assertPlanRole(userId, planId, ['owner', 'editor']);
+  const id = crypto.randomUUID();
+  const createdAt = new Date().toISOString();
+
+  if (pool) {
+    await pool.query(
+      'INSERT INTO plan_messages (id, plan_id, author_id, text, created_at) VALUES ($1,$2,$3,$4,$5)',
+      [id, planId, userId, text, createdAt]
+    );
+  } else {
+    db.prepare(
+      'INSERT INTO plan_messages (id, plan_id, author_id, text, created_at) VALUES (?, ?, ?, ?, ?)'
+    ).run(id, planId, userId, text, createdAt);
+  }
+
+  await logPlanActivity(planId, userId, 'plan.comment_added', { text });
+  return { id, planId, authorId: userId, text, createdAt };
+}
+
+export async function listPlanActivity(userId: string, planId: string): Promise<PlanActivity[]> {
+  await ensureSchema();
+  await assertPlanRole(userId, planId, ['owner', 'editor']);
+
+  if (pool) {
+    const result = await pool.query<PlanActivity>(
+      `SELECT pa.id,
+              pa.plan_id as "planId",
+              pa.actor_id as "actorId",
+              up.username as "actorUsername",
+              up.first_name as "actorFirstName",
+              up.last_name as "actorLastName",
+              pa.event_type as "eventType",
+              pa.payload_json as "payloadJson",
+              pa.created_at as "createdAt"
+       FROM plan_activity pa
+       LEFT JOIN user_profiles up ON up.user_id = pa.actor_id
+       WHERE pa.plan_id = $1
+       ORDER BY pa.created_at DESC`,
+      [planId]
+    );
+    return result.rows;
+  }
+
+  return db
+    .prepare(
+      `SELECT pa.id,
+              pa.plan_id as planId,
+              pa.actor_id as actorId,
+              up.username as actorUsername,
+              up.first_name as actorFirstName,
+              up.last_name as actorLastName,
+              pa.event_type as eventType,
+              pa.payload_json as payloadJson,
+              pa.created_at as createdAt
+       FROM plan_activity pa
+       LEFT JOIN user_profiles up ON up.user_id = pa.actor_id
+       WHERE pa.plan_id = ?
+       ORDER BY pa.created_at DESC`
+    )
+    .all(planId) as PlanActivity[];
 }
 
 export async function listWorkouts(userId: string) {

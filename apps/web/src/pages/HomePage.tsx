@@ -34,7 +34,10 @@ type Workout = {
   weight: number;
   tonnage: number;
   intensity: 'light' | 'medium' | 'heavy';
+  body_weight?: number | null;
+  notes?: string;
   performed_at: string;
+  plan_id?: string | null;
   plan_title?: string | null;
 };
 
@@ -49,6 +52,16 @@ type Row = {
   intensity: 'light' | 'medium' | 'heavy';
   customName: string;
   useCustom: boolean;
+};
+
+type WorkoutGroup = {
+  key: string;
+  date: string;
+  title: string;
+  plan: string;
+  totalTonnage: number;
+  ids: string[];
+  entries: Workout[];
 };
 
 const mockFollowingActivity = [
@@ -93,6 +106,7 @@ function newRow(defaultExercise = ''): Row {
 
 export function HomePage() {
   const { username } = useParams();
+
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [myUsername, setMyUsername] = useState('');
@@ -103,9 +117,11 @@ export function HomePage() {
   const [error, setError] = useState<string | null>(null);
 
   const [query, setQuery] = useState('');
-  const [dateFilter, setDateFilter] = useState<'all' | '7d' | '30d'>('all');
 
   const [showNewWorkout, setShowNewWorkout] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+  const [editingIds, setEditingIds] = useState<string[]>([]);
+
   const [newTitle, setNewTitle] = useState('Тренировка');
   const [newDate, setNewDate] = useState(new Date().toISOString().slice(0, 10));
   const [newPlanId, setNewPlanId] = useState('');
@@ -117,6 +133,7 @@ export function HomePage() {
     try {
       const ownProfile = await api.getProfile();
       setMyUsername(ownProfile.username);
+
       const followList = await api.listFollowing();
       setMyFollowing(followList.map((f) => f.username));
 
@@ -137,12 +154,16 @@ export function HomePage() {
         api.listPlans(),
         api.listExercises()
       ]);
+
       setDashboard(d);
       setProfile(p);
       setWorkouts(w);
       setPlans(pl.map((x) => ({ id: x.id, title: x.title })));
       setExercises(ex.map((e) => ({ id: e.id, name: e.name })));
-      if (rows.length === 0) setRows([newRow(ex[0]?.name ?? 'Присед')]);
+
+      if (rows.length === 0) {
+        setRows([newRow(ex[0]?.name ?? 'Присед')]);
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load dashboard');
     }
@@ -153,39 +174,19 @@ export function HomePage() {
   }, [username]);
 
   const filteredWorkouts = useMemo(() => {
-    const now = Date.now();
-    const msLimit =
-      dateFilter === '7d'
-        ? 7 * 24 * 60 * 60 * 1000
-        : dateFilter === '30d'
-          ? 30 * 24 * 60 * 60 * 1000
-          : null;
-
     return workouts.filter((w) => {
       const q = query.trim().toLowerCase();
-      const matchesQuery =
+      return (
         q.length === 0 ||
         w.title.toLowerCase().includes(q) ||
         w.exercise.toLowerCase().includes(q) ||
-        (w.plan_title ?? '').toLowerCase().includes(q);
-      const matchesDate = msLimit === null || now - new Date(w.performed_at).getTime() <= msLimit;
-      return matchesQuery && matchesDate;
+        (w.plan_title ?? '').toLowerCase().includes(q)
+      );
     });
-  }, [workouts, query, dateFilter]);
+  }, [workouts, query]);
 
   const grouped = useMemo(() => {
-    const map = new Map<
-      string,
-      {
-        key: string;
-        date: string;
-        title: string;
-        plan: string;
-        totalTonnage: number;
-        ids: string[];
-        exercises: string[];
-      }
-    >();
+    const map = new Map<string, WorkoutGroup>();
 
     for (const w of filteredWorkouts) {
       const date = new Date(w.performed_at).toISOString().slice(0, 10);
@@ -198,13 +199,14 @@ export function HomePage() {
           plan: w.plan_title || 'Без плана',
           totalTonnage: 0,
           ids: [],
-          exercises: []
+          entries: []
         });
       }
+
       const g = map.get(key)!;
       g.totalTonnage += Number(w.tonnage ?? w.sets * w.reps * w.weight);
       g.ids.push(w.id);
-      g.exercises.push(`${w.exercise} (${w.sets}x${w.reps}x${w.weight})`);
+      g.entries.push(w);
     }
 
     return [...map.values()].sort((a, b) => b.date.localeCompare(a.date));
@@ -217,6 +219,70 @@ export function HomePage() {
     (acc, r) => acc + Number(r.sets || 0) * Number(r.reps || 0) * Number(r.weight || 0),
     0
   );
+
+  const openCreateModal = () => {
+    setModalMode('create');
+    setEditingIds([]);
+    setNewTitle('Тренировка');
+    setNewDate(new Date().toISOString().slice(0, 10));
+    setNewPlanId('');
+    setNewBodyWeight(String(profile?.currentWeight ?? ''));
+    setRows([newRow(exercises[0]?.name ?? 'Присед')]);
+    setShowNewWorkout(true);
+  };
+
+  const openEditModal = (group: WorkoutGroup) => {
+    const first = group.entries[0];
+    const matchedPlan = plans.find((p) => p.title === group.plan);
+
+    setModalMode('edit');
+    setEditingIds(group.ids);
+    setNewTitle(group.title);
+    setNewDate(group.date);
+    setNewPlanId(matchedPlan?.id ?? first?.plan_id ?? '');
+    setNewBodyWeight(
+      first?.body_weight ? String(first.body_weight) : String(profile?.currentWeight ?? '')
+    );
+    setRows(
+      group.entries.map((w) => ({
+        id: crypto.randomUUID(),
+        exercise: w.exercise,
+        sets: String(w.sets),
+        reps: String(w.reps),
+        weight: String(w.weight),
+        intensity: w.intensity,
+        customName: '',
+        useCustom: false
+      }))
+    );
+    setShowNewWorkout(true);
+  };
+
+  const saveWorkout = async () => {
+    if (modalMode === 'edit' && editingIds.length > 0) {
+      for (const id of editingIds) {
+        await api.deleteWorkout(id);
+      }
+    }
+
+    for (const r of rows) {
+      if (!r.exercise) continue;
+      await api.createWorkout({
+        title: newTitle,
+        exercise: r.exercise,
+        sets: Number(r.sets),
+        reps: Number(r.reps),
+        weight: Number(r.weight),
+        intensity: r.intensity,
+        currentBodyWeight: newBodyWeight ? Number(newBodyWeight) : undefined,
+        planId: newPlanId || undefined,
+        performedAt: new Date(newDate).toISOString()
+      });
+    }
+
+    await refresh();
+    setShowNewWorkout(false);
+  };
 
   return (
     <section className={css.page}>
@@ -271,32 +337,9 @@ export function HomePage() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
-              <select
-                className={css.select}
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value as 'all' | '7d' | '30d')}
-              >
-                <option value="all">Любая дата</option>
-                <option value="7d">Последние 7 дней</option>
-                <option value="30d">Последние 30 дней</option>
-              </select>
               {isOwn && (
                 <div className={css.toolbarActions}>
-                  <button
-                    className={css.ghostBtn}
-                    type="button"
-                    onClick={async () => {
-                      await api.deleteAllWorkouts();
-                      await refresh();
-                    }}
-                  >
-                    Удалить все
-                  </button>
-                  <button
-                    className={css.newBtn}
-                    type="button"
-                    onClick={() => setShowNewWorkout(true)}
-                  >
+                  <button className={css.newBtn} type="button" onClick={openCreateModal}>
                     Новая тренировка
                   </button>
                 </div>
@@ -315,20 +358,21 @@ export function HomePage() {
                     <div className={css.repoMeta}>
                       {new Date(g.date).toLocaleDateString()} · План: {g.plan}
                     </div>
-                    <div className={css.repoMeta}>{g.exercises.join(' · ')}</div>
+                    <div className={css.repoMeta}>
+                      {g.entries
+                        .map((e) => `${e.exercise} (${e.weight}x${e.reps}x${e.sets})`)
+                        .join(' · ')}
+                    </div>
                   </div>
                   <div className={css.repoRight}>
                     <div>{Math.round(g.totalTonnage)} кг</div>
                     {isOwn && (
                       <button
-                        className={css.deleteBtn}
+                        className={css.iconEditBtn}
                         type="button"
-                        onClick={async () => {
-                          for (const id of g.ids) await api.deleteWorkout(id);
-                          await refresh();
-                        }}
+                        onClick={() => openEditModal(g)}
                       >
-                        Удалить
+                        ✏️
                       </button>
                     )}
                   </div>
@@ -362,7 +406,7 @@ export function HomePage() {
         <div className={css.modalOverlay} onClick={() => setShowNewWorkout(false)}>
           <div className={css.modalCard} onClick={(e) => e.stopPropagation()}>
             <div className={css.modalHeader}>
-              <h3>Новая тренировка</h3>
+              <h3>{modalMode === 'edit' ? 'Редактирование тренировки' : 'Новая тренировка'}</h3>
               <button
                 className={css.closeBtn}
                 type="button"
@@ -447,6 +491,7 @@ export function HomePage() {
                       <option value="__custom__">+ Кастомное...</option>
                     </select>
                   </label>
+
                   {r.useCustom ? (
                     <div className={css.customExerciseWrap}>
                       <label className={css.field}>
@@ -490,13 +535,13 @@ export function HomePage() {
                   ) : null}
 
                   <label className={css.field}>
-                    <span>Подходы</span>
+                    <span>Вес</span>
                     <input
                       className={css.input}
-                      value={r.sets}
+                      value={r.weight}
                       onChange={(e) =>
                         setRows((prev) =>
-                          prev.map((x) => (x.id === r.id ? { ...x, sets: e.target.value } : x))
+                          prev.map((x) => (x.id === r.id ? { ...x, weight: e.target.value } : x))
                         )
                       }
                     />
@@ -514,13 +559,13 @@ export function HomePage() {
                     />
                   </label>
                   <label className={css.field}>
-                    <span>Вес</span>
+                    <span>Подходы</span>
                     <input
                       className={css.input}
-                      value={r.weight}
+                      value={r.sets}
                       onChange={(e) =>
                         setRows((prev) =>
-                          prev.map((x) => (x.id === r.id ? { ...x, weight: e.target.value } : x))
+                          prev.map((x) => (x.id === r.id ? { ...x, sets: e.target.value } : x))
                         )
                       }
                     />
@@ -565,37 +610,31 @@ export function HomePage() {
             </div>
 
             <div className={css.modalFooter}>
-              <button
-                className={css.ghostBtn}
-                type="button"
-                onClick={() => setRows((prev) => [...prev, newRow(exercises[0]?.name ?? '')])}
-              >
-                + Упражнение
-              </button>
+              <div className={css.modalFooterLeft}>
+                <button
+                  className={css.ghostBtn}
+                  type="button"
+                  onClick={() => setRows((prev) => [...prev, newRow(exercises[0]?.name ?? '')])}
+                >
+                  + Упражнение
+                </button>
+                {modalMode === 'edit' && (
+                  <button
+                    className={css.deleteBtn}
+                    type="button"
+                    onClick={async () => {
+                      for (const id of editingIds) await api.deleteWorkout(id);
+                      await refresh();
+                      setShowNewWorkout(false);
+                    }}
+                  >
+                    Удалить тренировку
+                  </button>
+                )}
+              </div>
               <div className={css.tonnagePreview}>Общий тоннаж: {tonnagePreview} кг</div>
-              <button
-                className={css.newBtn}
-                type="button"
-                onClick={async () => {
-                  for (const r of rows) {
-                    if (!r.exercise) continue;
-                    await api.createWorkout({
-                      title: newTitle,
-                      exercise: r.exercise,
-                      sets: Number(r.sets),
-                      reps: Number(r.reps),
-                      weight: Number(r.weight),
-                      intensity: r.intensity,
-                      currentBodyWeight: newBodyWeight ? Number(newBodyWeight) : undefined,
-                      planId: newPlanId || undefined,
-                      performedAt: new Date(newDate).toISOString()
-                    });
-                  }
-                  await refresh();
-                  setShowNewWorkout(false);
-                }}
-              >
-                Сохранить тренировку
+              <button className={css.newBtn} type="button" onClick={saveWorkout}>
+                {modalMode === 'edit' ? 'Сохранить изменения' : 'Сохранить тренировку'}
               </button>
             </div>
           </div>
