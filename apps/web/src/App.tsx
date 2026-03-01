@@ -1,3 +1,4 @@
+import { Suspense, lazy } from 'react';
 import { Navigate, createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { GuestOnlyRoute } from './components/GuestOnlyRoute';
 import { Layout } from './components/Layout';
@@ -6,9 +7,10 @@ import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { ProfilePage } from './pages/ProfilePage';
-import { PlansPage } from './pages/PlansPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { RootRedirectPage } from './pages/RootRedirectPage';
+
+const PlansPage = lazy(() => import('./pages/PlansPage').then((m) => ({ default: m.PlansPage })));
 
 const router = createBrowserRouter(
   [
@@ -28,7 +30,14 @@ const router = createBrowserRouter(
           children: [
             { index: true, element: <RootRedirectPage /> },
             { path: 'profile', element: <ProfilePage /> },
-            { path: 'plans', element: <PlansPage /> },
+            {
+              path: 'plans',
+              element: (
+                <Suspense fallback={null}>
+                  <PlansPage />
+                </Suspense>
+              )
+            },
             { path: ':username', element: <HomePage /> },
             { path: '*', element: <NotFoundPage /> }
           ]
