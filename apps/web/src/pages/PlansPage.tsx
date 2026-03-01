@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Notification } from '../components/ui/Notification';
 import { api } from '../shared/api';
 import css from './PlansPage.module.css';
@@ -45,6 +45,34 @@ type PlanActivity = {
   createdAt: string;
 };
 
+function formatEventText(eventType: string, payloadJson: string) {
+  let payload: Record<string, unknown> = {};
+  try {
+    payload = payloadJson ? (JSON.parse(payloadJson) as Record<string, unknown>) : {};
+  } catch {
+    payload = {};
+  }
+
+  if (eventType === 'plan.created') return 'создал план';
+  if (eventType === 'plan.updated') {
+    const title = typeof payload.title === 'string' ? payload.title : '';
+    return title ? `обновил план «${title}»` : 'обновил план';
+  }
+  if (eventType === 'plan.editor_invited') {
+    const username = typeof payload.username === 'string' ? payload.username : '';
+    return username ? `пригласил редактора @${username}` : 'пригласил редактора';
+  }
+  if (eventType === 'plan.editor_accepted') return 'принял приглашение в редакторы';
+  if (eventType === 'plan.editor_rejected') return 'отклонил приглашение';
+  if (eventType === 'plan.editor_removed') {
+    const editorId = typeof payload.editorId === 'string' ? payload.editorId : '';
+    return editorId ? `убрал редактора (${editorId.slice(0, 8)}...)` : 'убрал редактора';
+  }
+  if (eventType === 'plan.comment_added') return 'оставил сообщение в обсуждении';
+
+  return eventType;
+}
+
 export function PlansPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
@@ -53,12 +81,15 @@ export function PlansPage() {
   const [messages, setMessages] = useState<PlanMessage[]>([]);
   const [activity, setActivity] = useState<PlanActivity[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [myUsername, setMyUsername] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [status, setStatus] = useState<'draft' | 'active' | 'archived'>('draft');
   const [inviteUsername, setInviteUsername] = useState('');
   const [newMessage, setNewMessage] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const selected = useMemo(
     () => plans.find((x) => x.id === selectedPlanId) ?? null,
@@ -68,7 +99,12 @@ export function PlansPage() {
   const loadBase = async () => {
     setError(null);
     try {
-      const [planList, inv] = await Promise.all([api.listPlans(), api.listPlanInvitations()]);
+      const [planList, inv, me] = await Promise.all([
+        api.listPlans(),
+        api.listPlanInvitations(),
+        api.getProfile()
+      ]);
+      setMyUsername(me.username);
       const normalizedPlans = planList.map((p) => ({
         id: p.id,
         title: p.title,
@@ -139,6 +175,10 @@ export function PlansPage() {
   useEffect(() => {
     if (selectedPlanId) loadPlanDetails(selectedPlanId);
   }, [selectedPlanId]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   return (
     <section className={css.page}>
@@ -250,12 +290,7 @@ export function PlansPage() {
                     <button
                       className={css.deleteBtn}
                       type="button"
-                      onClick={async () => {
-                        if (!confirm('Удалить план?')) return;
-                        await api.deletePlan(selected.id);
-                        setSelectedPlanId('');
-                        await loadBase();
-                      }}
+                      onClick={() => setShowDeleteConfirm(true)}
                     >
                       Удалить план
                     </button>
@@ -265,24 +300,36 @@ export function PlansPage() {
 
               <div className={css.card}>
                 <h3>Редакторы</h3>
+                {selected.role === 'owner' && (
+                  <div className={css.ownerBadge}>Ты владелец этого плана</div>
+                )}
                 <div className={css.editorList}>
-                  {editors.map((e) => (
-                    <div key={e.userId} className={css.editorRow}>
-                      <div>@{e.username || e.userId}</div>
-                      {selected.role === 'owner' && (
-                        <button
-                          className={css.deleteBtn}
-                          type="button"
-                          onClick={async () => {
-                            await api.removePlanEditor(selected.id, e.userId);
-                            await loadPlanDetails(selected.id);
-                          }}
-                        >
-                          Убрать
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                  {editors.length === 0 ? (
+                    <div className={css.meta}>Пока нет приглашённых редакторов</div>
+                  ) : (
+                    editors.map((e) => (
+                      <div key={e.userId} className={css.editorRow}>
+                        <div>
+                          @{e.username || e.userId}
+                          {e.username === myUsername && (
+                            <span className={css.selfBadge}> · это ты</span>
+                          )}
+                        </div>
+                        {selected.role === 'owner' && e.username !== myUsername && (
+                          <button
+                            className={css.deleteBtn}
+                            type="button"
+                            onClick={async () => {
+                              await api.removePlanEditor(selected.id, e.userId);
+                              await loadPlanDetails(selected.id);
+                            }}
+                          >
+                            Убрать
+                          </button>
+                        )}
+                      </div>
+                    ))
+                  )}
                 </div>
                 {selected.role === 'owner' && (
                   <div className={css.rowActions}>
@@ -309,15 +356,19 @@ export function PlansPage() {
 
               <div className={css.card}>
                 <h3>Conversations</h3>
-                <div className={css.feed}>
-                  {messages.map((m) => (
-                    <div key={m.id} className={css.feedRow}>
-                      <div className={css.feedMeta}>
-                        @{m.authorUsername} · {new Date(m.createdAt).toLocaleString()}
+                <div className={css.feedScrollable}>
+                  <div className={css.feed}>
+                    {messages.length === 0 && <div className={css.meta}>Пока нет сообщений</div>}
+                    {messages.map((m) => (
+                      <div key={m.id} className={css.feedRow}>
+                        <div className={css.feedMeta}>
+                          @{m.authorUsername} · {new Date(m.createdAt).toLocaleString('ru-RU')}
+                        </div>
+                        <div>{m.text}</div>
                       </div>
-                      <div>{m.text}</div>
-                    </div>
-                  ))}
+                    ))}
+                    <div ref={messagesEndRef} />
+                  </div>
                 </div>
                 <div className={css.rowActions}>
                   <input
@@ -344,12 +395,13 @@ export function PlansPage() {
               <div className={css.card}>
                 <h3>Activity</h3>
                 <div className={css.feed}>
+                  {activity.length === 0 && <div className={css.meta}>Пока нет событий</div>}
                   {activity.map((a) => (
                     <div key={a.id} className={css.feedRow}>
                       <div className={css.feedMeta}>
-                        @{a.actorUsername} · {new Date(a.createdAt).toLocaleString()}
+                        @{a.actorUsername} · {new Date(a.createdAt).toLocaleString('ru-RU')}
                       </div>
-                      <div>{a.eventType}</div>
+                      <div>{formatEventText(a.eventType, a.payloadJson)}</div>
                     </div>
                   ))}
                 </div>
@@ -358,6 +410,36 @@ export function PlansPage() {
           )}
         </div>
       </div>
+
+      {showDeleteConfirm && selected && (
+        <div className={css.modalOverlay} onClick={() => setShowDeleteConfirm(false)}>
+          <div className={css.modalCard} onClick={(e) => e.stopPropagation()}>
+            <h3>Удалить план?</h3>
+            <p>План «{selected.title}» будет удалён без возможности восстановления.</p>
+            <div className={css.rowActions}>
+              <button
+                className={css.ghostBtn}
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                Отмена
+              </button>
+              <button
+                className={css.deleteBtn}
+                type="button"
+                onClick={async () => {
+                  await api.deletePlan(selected.id);
+                  setShowDeleteConfirm(false);
+                  setSelectedPlanId('');
+                  await loadBase();
+                }}
+              >
+                Удалить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
