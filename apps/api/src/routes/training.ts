@@ -10,6 +10,7 @@ import {
   createWorkout,
   deletePlan,
   deleteWorkout,
+  deleteAllWorkouts,
   getDashboard,
   getUserProfile,
   listExercises,
@@ -199,6 +200,13 @@ trainingRouter.put('/workouts/:id', async (req: AuthenticatedRequest, res) => {
   const updated = await updateWorkout(userId, req.params.id, payload);
   if (!updated) return res.status(404).json({ message: 'Workout not found' });
   return res.json(updated);
+});
+
+trainingRouter.delete('/workouts', async (req: AuthenticatedRequest, res) => {
+  const userId = req.auth?.sub;
+  if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+  await deleteAllWorkouts(userId);
+  return res.status(204).send();
 });
 
 trainingRouter.delete('/workouts/:id', async (req: AuthenticatedRequest, res) => {

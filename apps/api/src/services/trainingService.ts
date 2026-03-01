@@ -907,6 +907,16 @@ export async function deleteWorkout(userId: string, id: string) {
   db.prepare('DELETE FROM workouts WHERE id = ? AND user_id = ?').run(id, userId);
 }
 
+export async function deleteAllWorkouts(userId: string) {
+  await ensureSchema();
+  if (pool) {
+    await pool.query('DELETE FROM workouts WHERE user_id = $1', [userId]);
+    return;
+  }
+
+  db.prepare('DELETE FROM workouts WHERE user_id = ?').run(userId);
+}
+
 export async function addAthlete(coachId: string, athleteId: string) {
   await ensureSchema();
   const linkId = crypto.randomUUID();

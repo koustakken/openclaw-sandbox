@@ -173,6 +173,7 @@ export const api = {
       currentBodyWeight?: number;
     }
   ) => request(`/training/workouts/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  deleteAllWorkouts: () => request('/training/workouts', { method: 'DELETE' }),
   deleteWorkout: (id: string) => request(`/training/workouts/${id}`, { method: 'DELETE' }),
   addAthlete: (athleteId: string) =>
     request('/training/coach/athletes', { method: 'POST', body: JSON.stringify({ athleteId }) }),

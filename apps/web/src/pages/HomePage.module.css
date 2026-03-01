@@ -76,6 +76,11 @@
   gap: 8px;
 }
 
+.toolbarActions {
+  display: inline-flex;
+  gap: 8px;
+}
+
 .search,
 .select,
 .input {
@@ -272,4 +277,58 @@
   border-radius: 6px;
   width: 30px;
   height: 30px;
+}
+
+.modalTopGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  color: #57606a;
+}
+
+.rowsWrap {
+  display: grid;
+  gap: 10px;
+}
+
+.exerciseRow {
+  border: 1px solid #d8dee4;
+  border-radius: 8px;
+  padding: 10px;
+  display: grid;
+  grid-template-columns: 2fr 1.2fr 1fr 1fr 1fr 1fr auto auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.customExerciseWrap {
+  grid-column: 1 / span 2;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.rowTonnage {
+  font-size: 12px;
+  color: #57606a;
+}
+
+.rowIndex {
+  font-size: 12px;
+  color: #57606a;
+  justify-self: end;
+}
+
+.modalFooter {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
 }
