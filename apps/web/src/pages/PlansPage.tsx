@@ -229,7 +229,24 @@ export function PlansPage() {
 
       <div className={css.layout}>
         <aside className={css.left}>
-          <h3>Планы</h3>
+          <div className={css.leftHeader}>
+            <h3>Планы</h3>
+            <button
+              className={css.newBtn}
+              type="button"
+              onClick={async () => {
+                const created = (await api.createPlan({
+                  title: `Новый план ${new Date().toLocaleDateString('ru-RU')}`,
+                  content: 'Опиши структуру плана: дни, упражнения, объём, интенсивность.',
+                  status: 'draft'
+                })) as { id: string };
+                await loadBase();
+                setSelectedPlanId(created.id);
+              }}
+            >
+              + Новый
+            </button>
+          </div>
           {plans.map((p) => (
             <button
               type="button"

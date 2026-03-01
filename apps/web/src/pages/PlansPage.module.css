@@ -24,6 +24,23 @@
   align-content: start;
 }
 
+.leftHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.newBtn {
+  border: 1px solid rgba(31, 35, 40, 0.15);
+  background: #2da44e;
+  color: #fff;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .planItem {
   border: 1px solid #d8dee4;
   border-radius: 8px;
