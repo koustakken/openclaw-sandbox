@@ -11,8 +11,8 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('ag-grid-react') || id.includes('ag-grid-community')) {
-            return 'ag-grid-vendor';
+          if (id.includes('handsontable') || id.includes('@handsontable/react')) {
+            return 'handsontable-vendor';
           }
           if (id.includes('react-router-dom')) {
             return 'router-vendor';

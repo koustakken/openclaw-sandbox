@@ -1,18 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AgGridReact } from 'ag-grid-react';
-import {
-  AllCommunityModule,
-  ModuleRegistry,
-  type CellValueChangedEvent,
-  type ColDef
-} from 'ag-grid-community';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-quartz.css';
+import { HotTable } from '@handsontable/react';
+import type Handsontable from 'handsontable';
+import 'handsontable/styles/handsontable.min.css';
+import 'handsontable/styles/ht-theme-main.min.css';
 import { Notification } from '../components/ui/Notification';
 import { api } from '../shared/api';
 import css from './PlansPage.module.css';
-
-ModuleRegistry.registerModules([AllCommunityModule]);
 
 type Plan = {
   id: string;
@@ -164,15 +157,15 @@ export function PlansPage() {
     [plans, selectedPlanId]
   );
 
-  const columnDefs = useMemo<ColDef<PlanTableRow>[]>(
+  const hotColumns = useMemo<Handsontable.ColumnSettings[]>(
     () => [
-      { field: 'day', headerName: 'День', flex: 1, minWidth: 110 },
-      { field: 'exercise', headerName: 'Упражнение', flex: 1.4, minWidth: 170 },
-      { field: 'weight', headerName: 'Вес', flex: 0.8, minWidth: 90 },
-      { field: 'reps', headerName: 'Повторы', flex: 0.9, minWidth: 110 },
-      { field: 'sets', headerName: 'Подходы', flex: 0.9, minWidth: 110 },
-      { field: 'intensity', headerName: 'Интенсивность', flex: 1, minWidth: 130 },
-      { field: 'notes', headerName: 'Комментарий', flex: 1.6, minWidth: 180 }
+      { data: 'day', type: 'text' },
+      { data: 'exercise', type: 'text' },
+      { data: 'weight', type: 'numeric' },
+      { data: 'reps', type: 'numeric' },
+      { data: 'sets', type: 'numeric' },
+      { data: 'intensity', type: 'text' },
+      { data: 'notes', type: 'text' }
     ],
     []
   );
@@ -396,26 +389,41 @@ export function PlansPage() {
                         − Удалить последнюю
                       </button>
                     </div>
-                    <div className={`ag-theme-quartz ${css.gridWrap}`}>
-                      <AgGridReact<PlanTableRow>
-                        rowData={tableRows}
-                        columnDefs={columnDefs}
-                        defaultColDef={{ editable: true, resizable: true, sortable: false }}
-                        stopEditingWhenCellsLoseFocus
-                        onCellValueChanged={(event: CellValueChangedEvent<PlanTableRow>) => {
-                          const rowId = event.data?.id;
-                          if (!rowId || !event.colDef.field) return;
-                          setTableRows((prev) =>
-                            prev.map((r) =>
-                              r.id === rowId
-                                ? {
-                                    ...r,
-                                    [event.colDef.field as keyof PlanTableRow]:
-                                      event.newValue as never
-                                  }
-                                : r
-                            )
-                          );
+                    <div className={`ht-theme-main ${css.gridWrap}`}>
+                      <HotTable
+                        data={tableRows}
+                        columns={hotColumns}
+                        colHeaders={[
+                          'День',
+                          'Упражнение',
+                          'Вес',
+                          'Повторы',
+                          'Подходы',
+                          'Интенсивность',
+                          'Комментарий'
+                        ]}
+                        rowHeaders
+                        height="100%"
+                        width="100%"
+                        stretchH="all"
+                        contextMenu
+                        manualColumnResize
+                        licenseKey="non-commercial-and-evaluation"
+                        afterChange={(changes, source) => {
+                          if (!changes || source === 'loadData') return;
+                          setTableRows((prev) => {
+                            const next = [...prev];
+                            for (const [row, prop, , newValue] of changes) {
+                              if (typeof row !== 'number' || typeof prop !== 'string') continue;
+                              const current = next[row];
+                              if (!current) continue;
+                              next[row] = {
+                                ...current,
+                                [prop]: newValue as never
+                              };
+                            }
+                            return next;
+                          });
                         }}
                       />
                     </div>
