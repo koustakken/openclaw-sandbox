@@ -1,11 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AgGridReact } from 'ag-grid-react';
-import type { CellValueChangedEvent, ColDef } from 'ag-grid-community';
+import {
+  AllCommunityModule,
+  ModuleRegistry,
+  type CellValueChangedEvent,
+  type ColDef
+} from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
 import { Notification } from '../components/ui/Notification';
 import { api } from '../shared/api';
 import css from './PlansPage.module.css';
+
+ModuleRegistry.registerModules([AllCommunityModule]);
 
 type Plan = {
   id: string;
