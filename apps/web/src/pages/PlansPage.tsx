@@ -1,4 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { AgGridReact } from 'ag-grid-react';
+import type { CellValueChangedEvent, ColDef } from 'ag-grid-community';
+import 'ag-grid-community/styles/ag-grid.css';
+import 'ag-grid-community/styles/ag-theme-quartz.css';
 import { Notification } from '../components/ui/Notification';
 import { api } from '../shared/api';
 import css from './PlansPage.module.css';
@@ -45,6 +49,17 @@ type PlanActivity = {
   createdAt: string;
 };
 
+type PlanTableRow = {
+  id: string;
+  day: string;
+  exercise: string;
+  weight: number;
+  reps: number;
+  sets: number;
+  intensity: string;
+  notes: string;
+};
+
 function formatEventText(eventType: string, payloadJson: string) {
   let payload: Record<string, unknown> = {};
   try {
@@ -79,6 +94,45 @@ function formatPlanStatus(status: Plan['status']) {
   return 'Архив';
 }
 
+const TABLE_PREFIX = '__TABLE_JSON__\n';
+
+function createEmptyRow(): PlanTableRow {
+  return {
+    id: crypto.randomUUID(),
+    day: '',
+    exercise: '',
+    weight: 0,
+    reps: 0,
+    sets: 0,
+    intensity: '',
+    notes: ''
+  };
+}
+
+function parsePlanTable(content: string): PlanTableRow[] {
+  if (!content) return [createEmptyRow()];
+
+  if (content.startsWith(TABLE_PREFIX)) {
+    try {
+      const rows = JSON.parse(content.slice(TABLE_PREFIX.length)) as PlanTableRow[];
+      return rows.length > 0 ? rows : [createEmptyRow()];
+    } catch {
+      return [createEmptyRow()];
+    }
+  }
+
+  return [
+    {
+      ...createEmptyRow(),
+      notes: content
+    }
+  ];
+}
+
+function serializePlanTable(rows: PlanTableRow[]) {
+  return `${TABLE_PREFIX}${JSON.stringify(rows)}`;
+}
+
 export function PlansPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
@@ -92,6 +146,7 @@ export function PlansPage() {
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [tableRows, setTableRows] = useState<PlanTableRow[]>([createEmptyRow()]);
   const [status, setStatus] = useState<'draft' | 'active' | 'archived'>('draft');
   const [inviteUsername, setInviteUsername] = useState('');
   const [newMessage, setNewMessage] = useState('');
@@ -100,6 +155,19 @@ export function PlansPage() {
   const selected = useMemo(
     () => plans.find((x) => x.id === selectedPlanId) ?? null,
     [plans, selectedPlanId]
+  );
+
+  const columnDefs = useMemo<ColDef<PlanTableRow>[]>(
+    () => [
+      { field: 'day', headerName: 'День', flex: 1, minWidth: 110 },
+      { field: 'exercise', headerName: 'Упражнение', flex: 1.4, minWidth: 170 },
+      { field: 'weight', headerName: 'Вес', flex: 0.8, minWidth: 90 },
+      { field: 'reps', headerName: 'Повторы', flex: 0.9, minWidth: 110 },
+      { field: 'sets', headerName: 'Подходы', flex: 0.9, minWidth: 110 },
+      { field: 'intensity', headerName: 'Интенсивность', flex: 1, minWidth: 130 },
+      { field: 'notes', headerName: 'Комментарий', flex: 1.6, minWidth: 180 }
+    ],
+    []
   );
 
   const loadBase = async () => {
@@ -150,6 +218,7 @@ export function PlansPage() {
 
       setTitle(plan.title);
       setContent(plan.content);
+      setTableRows(parsePlanTable(plan.content));
       setStatus(plan.status);
       setEditors(eds);
       setMessages(
@@ -237,7 +306,7 @@ export function PlansPage() {
               onClick={async () => {
                 const created = (await api.createPlan({
                   title: `Новый план ${new Date().toLocaleDateString('ru-RU')}`,
-                  content: 'Опиши структуру плана: дни, упражнения, объём, интенсивность.',
+                  content: serializePlanTable([createEmptyRow()]),
                   status: 'draft'
                 })) as { id: string };
                 await loadBase();
@@ -298,21 +367,61 @@ export function PlansPage() {
                       <option value="archived">Архив</option>
                     </select>
                   </label>
-                  <label className={css.full}>
-                    <span>Содержимое</span>
-                    <textarea
-                      value={content}
-                      onChange={(e) => setContent(e.target.value)}
-                      rows={8}
-                    />
-                  </label>
+                  <div className={css.full}>
+                    <span className={css.gridLabel}>Таблица плана (Excel-стиль)</span>
+                    <div className={css.tableActions}>
+                      <button
+                        className={css.ghostBtn}
+                        type="button"
+                        onClick={() => setTableRows((prev) => [...prev, createEmptyRow()])}
+                      >
+                        + Строка
+                      </button>
+                      <button
+                        className={css.ghostBtn}
+                        type="button"
+                        onClick={() =>
+                          setTableRows((prev) =>
+                            prev.length > 1 ? prev.slice(0, prev.length - 1) : prev
+                          )
+                        }
+                      >
+                        − Удалить последнюю
+                      </button>
+                    </div>
+                    <div className={`ag-theme-quartz ${css.gridWrap}`}>
+                      <AgGridReact<PlanTableRow>
+                        rowData={tableRows}
+                        columnDefs={columnDefs}
+                        defaultColDef={{ editable: true, resizable: true, sortable: false }}
+                        stopEditingWhenCellsLoseFocus
+                        onCellValueChanged={(event: CellValueChangedEvent<PlanTableRow>) => {
+                          const rowId = event.data?.id;
+                          if (!rowId || !event.colDef.field) return;
+                          setTableRows((prev) =>
+                            prev.map((r) =>
+                              r.id === rowId
+                                ? {
+                                    ...r,
+                                    [event.colDef.field as keyof PlanTableRow]:
+                                      event.newValue as never
+                                  }
+                                : r
+                            )
+                          );
+                        }}
+                      />
+                    </div>
+                  </div>
                 </div>
                 <div className={css.rowActions}>
                   <button
                     className={css.saveBtn}
                     type="button"
                     onClick={async () => {
-                      await api.updatePlan(selected.id, { title, content, status });
+                      const serialized = serializePlanTable(tableRows);
+                      setContent(serialized);
+                      await api.updatePlan(selected.id, { title, content: serialized, status });
                       await loadBase();
                       await loadPlanDetails(selected.id);
                     }}
