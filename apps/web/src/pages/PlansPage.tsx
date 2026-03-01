@@ -392,8 +392,10 @@ export function PlansPage() {
                         − Удалить последнюю
                       </button>
                     </div>
-                    <div className={`ht-theme-main ${css.gridWrap}`}>
+                    <div className={css.gridWrap}>
                       <HotTable
+                        className="ht-theme-main"
+                        themeName="ht-theme-main"
                         data={tableRows}
                         columns={hotColumns}
                         colHeaders={[
@@ -406,11 +408,13 @@ export function PlansPage() {
                           'Комментарий'
                         ]}
                         rowHeaders
-                        height="100%"
+                        height={320}
                         width="100%"
                         stretchH="all"
                         contextMenu
                         manualColumnResize
+                        autoWrapRow
+                        autoWrapCol
                         licenseKey="non-commercial-and-evaluation"
                         afterChange={(changes, source) => {
                           if (!changes || source === 'loadData') return;
