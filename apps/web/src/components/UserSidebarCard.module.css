@@ -7,8 +7,8 @@
   width: 260px;
   height: 260px;
   border-radius: 50%;
-  background: #24292f;
-  color: #fff;
+  background: var(--color-text);
+  color: var(--color-surface);
   display: grid;
   place-items: center;
   font-weight: 700;
@@ -23,21 +23,21 @@
 
 .login {
   margin-top: -4px;
-  color: #57606a;
+  color: var(--color-muted);
   font-size: 20px;
   font-weight: 300;
 }
 
 .bio {
   margin-top: 8px;
-  color: #24292f;
+  color: var(--color-text);
 }
 
 .metaRow {
   display: flex;
   gap: 8px;
   align-items: center;
-  color: #57606a;
+  color: var(--color-muted);
   font-size: 14px;
 }
 
@@ -50,12 +50,12 @@
   display: flex;
   gap: 6px;
   align-items: center;
-  color: #57606a;
+  color: var(--color-muted);
   font-size: 14px;
 }
 
 .link {
-  color: #0969da;
+  color: #6ea8ff;
   text-decoration: none;
 }
 

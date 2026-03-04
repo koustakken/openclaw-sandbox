@@ -44,15 +44,15 @@
 }
 
 .card {
-  border: 1px solid #d0d7de;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  background: #fff;
+  background: var(--color-surface);
   padding: 14px;
 }
 
 .title {
   font-size: 13px;
-  color: #57606a;
+  color: var(--color-muted);
   margin-bottom: 4px;
 }
 
@@ -62,15 +62,15 @@
 }
 
 .repoBlock {
-  border: 1px solid #d0d7de;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  background: #fff;
+  background: var(--color-surface);
   overflow: hidden;
 }
 
 .repoToolbar {
   padding: 12px;
-  border-bottom: 1px solid #d8dee4;
+  border-bottom: 1px solid #24344f;
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 8px;
@@ -85,17 +85,17 @@
 .select,
 .input {
   width: 100%;
-  border: 1px solid #d0d7de;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   padding: 8px 10px;
-  background: #fff;
+  background: var(--color-surface);
   font-size: 14px;
 }
 
 .newBtn {
   border: 1px solid rgba(31, 35, 40, 0.15);
   background: #2da44e;
-  color: #fff;
+  color: var(--color-surface);
   border-radius: 6px;
   padding: 8px 12px;
   font-size: 13px;
@@ -103,9 +103,9 @@
 }
 
 .ghostBtn {
-  border: 1px solid #d0d7de;
-  background: #f6f8fa;
-  color: #24292f;
+  border: 1px solid var(--color-border);
+  background: #17233a;
+  color: var(--color-text);
   border-radius: 6px;
   padding: 8px 12px;
   font-size: 13px;
@@ -114,10 +114,10 @@
 .tonnagePreview {
   display: grid;
   place-items: center;
-  border: 1px dashed #d0d7de;
+  border: 1px dashed var(--color-border);
   border-radius: 6px;
   font-size: 13px;
-  color: #57606a;
+  color: var(--color-muted);
 }
 
 .newWorkoutForm {
@@ -128,12 +128,12 @@
 
 .repoEmpty {
   padding: 18px 12px;
-  color: #57606a;
+  color: var(--color-muted);
 }
 
 .repoItem {
   padding: 14px 12px;
-  border-bottom: 1px solid #d8dee4;
+  border-bottom: 1px solid #24344f;
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 8px;
@@ -144,12 +144,12 @@
 }
 
 .repoTitle {
-  color: #0969da;
+  color: #6ea8ff;
   font-weight: 600;
 }
 
 .repoMeta {
-  color: #57606a;
+  color: var(--color-muted);
   font-size: 13px;
 }
 
@@ -162,8 +162,8 @@
 }
 
 .iconEditBtn {
-  border: 1px solid #d0d7de;
-  background: #fff;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
   border-radius: 6px;
   width: 32px;
   height: 32px;
@@ -172,8 +172,8 @@
 }
 
 .deleteBtn {
-  border: 1px solid #d0d7de;
-  background: #fff;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
   color: #cf222e;
   border-radius: 6px;
   padding: 4px 8px;
@@ -181,22 +181,22 @@
 }
 
 .activityColumn {
-  border: 1px solid #d0d7de;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  background: #fff;
+  background: var(--color-surface);
   overflow: hidden;
 }
 
 .activityHeader {
   padding: 12px 14px;
-  border-bottom: 1px solid #d8dee4;
+  border-bottom: 1px solid #24344f;
   font-weight: 600;
 }
 
 .activityMonth {
   padding: 10px 14px 0;
   font-size: 12px;
-  color: #57606a;
+  color: var(--color-muted);
 }
 
 .timeline {
@@ -211,7 +211,7 @@
   top: 14px;
   bottom: 14px;
   width: 2px;
-  background: #d8dee4;
+  background: #24344f;
 }
 
 .activityItem {
@@ -226,8 +226,8 @@
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  border: 1px solid #d0d7de;
-  background: #fff;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
   display: grid;
   place-items: center;
   z-index: 1;
@@ -236,22 +236,22 @@
 
 .activityTitle {
   font-size: 14px;
-  color: #24292f;
+  color: var(--color-text);
   line-height: 1.35;
 }
 
 .activityMeta {
   font-size: 12px;
-  color: #57606a;
+  color: var(--color-muted);
   margin-top: 2px;
 }
 
 .showMore {
   width: calc(100% - 24px);
   margin: 0 12px 12px;
-  border: 1px solid #d0d7de;
-  background: #f6f8fa;
-  color: #0969da;
+  border: 1px solid var(--color-border);
+  background: #17233a;
+  color: #6ea8ff;
   border-radius: 6px;
   padding: 8px 10px;
   font-size: 13px;
@@ -270,8 +270,8 @@
   width: min(980px, calc(100vw - 24px));
   max-height: calc(100vh - 24px);
   overflow: auto;
-  background: #fff;
-  border: 1px solid #d0d7de;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   padding: 16px;
   display: grid;
@@ -285,8 +285,8 @@
 }
 
 .closeBtn {
-  border: 1px solid #d0d7de;
-  background: #fff;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
   border-radius: 6px;
   width: 30px;
   height: 30px;
@@ -302,7 +302,7 @@
   display: grid;
   gap: 6px;
   font-size: 12px;
-  color: #57606a;
+  color: var(--color-muted);
   min-width: 140px;
   flex: 1 1 140px;
 }
@@ -313,7 +313,7 @@
 }
 
 .exerciseRow {
-  border: 1px solid #d8dee4;
+  border: 1px solid #24344f;
   border-radius: 8px;
   padding: 10px;
   display: flex;
@@ -331,13 +331,13 @@
 
 .rowTonnage {
   font-size: 12px;
-  color: #57606a;
+  color: var(--color-muted);
   flex: 1 1 220px;
 }
 
 .rowIndex {
   font-size: 12px;
-  color: #57606a;
+  color: var(--color-muted);
   flex: 0 0 auto;
 }
 

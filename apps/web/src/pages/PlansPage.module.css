@@ -12,9 +12,9 @@
 .left,
 .card,
 .invitesBlock {
-  border: 1px solid #d0d7de;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  background: #fff;
+  background: var(--color-surface);
   padding: 12px;
 }
 
@@ -34,7 +34,7 @@
 .newBtn {
   border: 1px solid rgba(31, 35, 40, 0.15);
   background: #2da44e;
-  color: #fff;
+  color: var(--color-surface);
   border-radius: 6px;
   padding: 6px 10px;
   font-size: 12px;
@@ -42,16 +42,16 @@
 }
 
 .planItem {
-  border: 1px solid #d8dee4;
+  border: 1px solid #24344f;
   border-radius: 8px;
-  background: #fff;
+  background: var(--color-surface);
   padding: 10px;
   text-align: left;
 }
 
 .planItemActive {
-  border-color: #0969da;
-  background: #f6f8fa;
+  border-color: #6ea8ff;
+  background: #17233a;
 }
 
 .planTop {
@@ -75,7 +75,7 @@
 }
 
 .roleEditor {
-  color: #0969da;
+  color: #6ea8ff;
   background: #ddf4ff;
   border-color: #9cd7ff;
 }
@@ -92,12 +92,12 @@
   font-size: 11px;
   border-radius: 999px;
   padding: 2px 8px;
-  border: 1px solid #d0d7de;
+  border: 1px solid var(--color-border);
 }
 
 .status_draft {
   color: #6e7781;
-  background: #f6f8fa;
+  background: #17233a;
 }
 
 .status_active {
@@ -114,7 +114,7 @@
 
 .meta {
   font-size: 12px;
-  color: #57606a;
+  color: var(--color-muted);
 }
 
 .main {
@@ -132,14 +132,14 @@
   display: grid;
   gap: 6px;
   font-size: 12px;
-  color: #57606a;
+  color: var(--color-muted);
 }
 
 .formGrid input,
 .formGrid select,
 .formGrid textarea,
 .rowActions input {
-  border: 1px solid #d0d7de;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   padding: 8px 10px;
   font-size: 14px;
@@ -152,7 +152,7 @@
 .gridLabel {
   display: block;
   font-size: 12px;
-  color: #57606a;
+  color: var(--color-muted);
   margin-bottom: 6px;
 }
 
@@ -165,10 +165,10 @@
 .gridWrap {
   width: 100%;
   min-height: 360px;
-  border: 1px solid #d8dee4;
+  border: 1px solid #24344f;
   border-radius: 8px;
   overflow: hidden;
-  background: #fff;
+  background: var(--color-surface);
 }
 
 .gridWrap :global(.handsontable) {
@@ -189,7 +189,7 @@
 .saveBtn {
   border: 1px solid rgba(31, 35, 40, 0.15);
   background: #2da44e;
-  color: #fff;
+  color: var(--color-surface);
   border-radius: 6px;
   padding: 8px 12px;
   font-size: 13px;
@@ -199,9 +199,9 @@
 .ghostBtn,
 .deleteBtn,
 .acceptBtn {
-  border: 1px solid #d0d7de;
-  background: #f6f8fa;
-  color: #24292f;
+  border: 1px solid var(--color-border);
+  background: #17233a;
+  color: var(--color-text);
   border-radius: 6px;
   padding: 8px 12px;
   font-size: 13px;
@@ -209,7 +209,7 @@
 
 .deleteBtn {
   color: #cf222e;
-  background: #fff;
+  background: var(--color-surface);
 }
 
 .acceptBtn {
@@ -224,20 +224,20 @@
 .feedScrollable {
   max-height: 280px;
   overflow: auto;
-  border: 1px solid #d8dee4;
+  border: 1px solid #24344f;
   border-radius: 8px;
   padding: 8px;
 }
 
 .feedRow {
-  border: 1px solid #d8dee4;
+  border: 1px solid #24344f;
   border-radius: 8px;
   padding: 8px;
 }
 
 .feedMeta {
   font-size: 12px;
-  color: #57606a;
+  color: var(--color-muted);
   margin-bottom: 4px;
 }
 
@@ -252,7 +252,7 @@
   justify-content: space-between;
   gap: 8px;
   align-items: center;
-  border: 1px solid #d8dee4;
+  border: 1px solid #24344f;
   border-radius: 8px;
   padding: 8px;
 }
@@ -270,7 +270,7 @@
 
 .selfBadge {
   font-size: 12px;
-  color: #57606a;
+  color: var(--color-muted);
 }
 
 .flex {
@@ -278,11 +278,11 @@
 }
 
 .empty {
-  border: 1px dashed #d0d7de;
+  border: 1px dashed var(--color-border);
   border-radius: 8px;
   padding: 24px;
   text-align: center;
-  color: #57606a;
+  color: var(--color-muted);
 }
 
 .modalOverlay {
@@ -296,8 +296,8 @@
 
 .modalCard {
   width: min(420px, calc(100vw - 24px));
-  background: #fff;
-  border: 1px solid #d0d7de;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   padding: 14px;
   display: grid;

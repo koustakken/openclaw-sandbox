@@ -2,17 +2,19 @@
   --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial,
     'Apple Color Emoji', 'Segoe UI Emoji';
 
-  --color-bg: #f6f8fa;
-  --color-surface: #ffffff;
-  --color-text: #24292f;
-  --color-border: #d0d7de;
+  --color-bg: #0b1222;
+  --color-surface: #121a2b;
+  --color-surface-soft: #17233a;
+  --color-text: #e6edf7;
+  --color-muted: #9fb0cb;
+  --color-border: #273854;
 
-  --color-header-bg: #24292f;
+  --color-header-bg: #0f1728;
   --color-header-text: #f0f6fc;
-  --color-header-border: #57606a;
+  --color-header-border: #2a3e5f;
 
-  --color-primary: #0969da;
-  --color-danger: #cf222e;
+  --color-primary: #3b82f6;
+  --color-danger: #ef4444;
 
   --radius-md: 8px;
 }
