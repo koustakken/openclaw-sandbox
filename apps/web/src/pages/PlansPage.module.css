@@ -122,6 +122,53 @@
   gap: 12px;
 }
 
+.planHero {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  padding: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.heroTitle {
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.heroActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.planTabs {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  padding: 6px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tabGhost,
+.tabActive {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: transparent;
+  color: var(--color-muted);
+}
+
+.tabActive {
+  background: #1f3150;
+  color: var(--color-text);
+  border-color: #315081;
+}
+
 .formGrid {
   display: grid;
   grid-template-columns: 1fr 220px;

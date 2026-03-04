@@ -323,7 +323,28 @@ export function PlansPage() {
             <div className={css.empty}>Выбери план слева</div>
           ) : (
             <>
+              <div className={css.planHero}>
+                <div>
+                  <div className={css.heroTitle}>{selected.title}</div>
+                  <div className={css.meta}>by @{myUsername || 'coach'}</div>
+                </div>
+                <div className={css.heroActions}>
+                  <button className={css.ghostBtn}>Edit Plan</button>
+                  <button className={css.ghostBtn}>Duplicate</button>
+                  <button className={css.ghostBtn}>Invite Athlete</button>
+                </div>
+              </div>
+
+              <div className={css.planTabs}>
+                <button className={css.tabActive}>Overview</button>
+                <button className={css.tabGhost}>Workouts</button>
+                <button className={css.tabGhost}>Progress</button>
+                <button className={css.tabGhost}>Discussions</button>
+                <button className={css.tabGhost}>History</button>
+              </div>
+
               <div className={css.card}>
+                <h3>Overview</h3>
                 <h3>Overview</h3>
                 <div className={css.formGrid}>
                   <label>

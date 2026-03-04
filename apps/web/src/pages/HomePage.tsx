@@ -91,6 +91,11 @@ const mockFollowingActivity = [
   }
 ];
 
+const mockComments = [
+  { id: 'c1', author: 'Coach', text: 'Try +5kg on the bench this week.' },
+  { id: 'c2', author: 'Ivan', text: 'Felt better bracing on squats today.' }
+];
+
 function newRow(defaultExercise = ''): Row {
   return {
     id: crypto.randomUUID(),
@@ -327,6 +332,31 @@ export function HomePage() {
                 {dashboard?.bestWeek.deadlift ?? 0} кг
               </div>
             </div>
+          </div>
+
+          <div className={css.dashboardSplit}>
+            <div className={css.progressCard}>
+              <div className={css.panelTitle}>Progress Overview</div>
+              <div className={css.chartMock}>
+                <div className={css.chartLineA} />
+                <div className={css.chartLineB} />
+              </div>
+            </div>
+            <div className={css.nextWorkoutCard}>
+              <div className={css.panelTitle}>Next Workout</div>
+              <div className={css.nextWorkoutMain}>Week 5 Day 2</div>
+              <div className={css.repoMeta}>Squat & Accessories</div>
+              <button className={css.newBtn}>View Workout</button>
+            </div>
+          </div>
+
+          <div className={css.commentsCard}>
+            <div className={css.panelTitle}>Recent Comments</div>
+            {mockComments.map((c) => (
+              <div key={c.id} className={css.commentRow}>
+                <strong>{c.author}:</strong> {c.text}
+              </div>
+            ))}
           </div>
 
           <div className={css.repoBlock}>
