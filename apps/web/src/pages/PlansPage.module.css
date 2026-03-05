@@ -154,6 +154,41 @@
   flex-wrap: wrap;
 }
 
+.logGrid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 12px;
+}
+
+.logList {
+  display: grid;
+  gap: 8px;
+}
+
+.logRow {
+  display: flex;
+  justify-content: space-between;
+  border: 1px solid #24344f;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.athletesRow {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.avatarCircle {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #1f3150;
+  border: 1px solid #315081;
+}
+
 .tabGhost,
 .tabActive {
   border: 1px solid transparent;
@@ -268,6 +303,30 @@
   gap: 8px;
 }
 
+.logTableWrap {
+  border: 1px solid #24344f;
+  border-radius: 8px;
+  overflow: auto;
+}
+
+.logTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.logTable th,
+.logTable td {
+  border-bottom: 1px solid #24344f;
+  padding: 8px;
+  text-align: left;
+}
+
+.logTable th {
+  color: var(--color-muted);
+  font-weight: 600;
+}
+
 .feedScrollable {
   max-height: 280px;
   overflow: auto;
@@ -353,6 +412,10 @@
 
 @media (max-width: 980px) {
   .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .logGrid {
     grid-template-columns: 1fr;
   }
 }

@@ -343,6 +343,56 @@ export function PlansPage() {
                 <button className={css.tabGhost}>History</button>
               </div>
 
+              <div className={css.logGrid}>
+                <div className={css.card}>
+                  <h3>Workout Log</h3>
+                  <div className={css.logList}>
+                    <div className={css.logRow}>
+                      <span>Week 3 Day 1</span>
+                      <span>9,500 kg</span>
+                    </div>
+                    <div className={css.logRow}>
+                      <span>Week 3 Day 2</span>
+                      <span>11,200 kg</span>
+                    </div>
+                    <div className={css.logRow}>
+                      <span>Week 3 Day 3</span>
+                      <span>Planned</span>
+                    </div>
+                    <div className={css.logRow}>
+                      <span>Week 2 Day 4</span>
+                      <span>6,800 kg</span>
+                    </div>
+                  </div>
+                </div>
+                <div className={css.card}>
+                  <h3>Athletes Assigned</h3>
+                  <div className={css.athletesRow}>
+                    {(editors.length
+                      ? editors
+                      : [
+                          {
+                            userId: 'owner',
+                            username: myUsername || 'owner',
+                            firstName: '',
+                            lastName: '',
+                            addedAt: ''
+                          }
+                        ]
+                    )
+                      .slice(0, 4)
+                      .map((e) => (
+                        <div key={e.userId} className={css.avatarCircle}>
+                          {(e.username || 'U').slice(0, 1).toUpperCase()}
+                        </div>
+                      ))}
+                  </div>
+                  <button className={css.ghostBtn} type="button">
+                    Manage
+                  </button>
+                </div>
+              </div>
+
               <div className={css.card}>
                 <h3>Overview</h3>
                 <h3>Overview</h3>
@@ -441,6 +491,34 @@ export function PlansPage() {
                       Удалить план
                     </button>
                   )}
+                </div>
+              </div>
+
+              <div className={css.card}>
+                <h3>Week 3 Day 2 — Log Workout</h3>
+                <div className={css.logTableWrap}>
+                  <table className={css.logTable}>
+                    <thead>
+                      <tr>
+                        <th>Exercise</th>
+                        <th>Sets</th>
+                        <th>Reps</th>
+                        <th>Weight</th>
+                        <th>Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tableRows.slice(0, 5).map((r, idx) => (
+                        <tr key={idx}>
+                          <td>{String(r[1] ?? r[0] ?? '')}</td>
+                          <td>{String(r[4] ?? '')}</td>
+                          <td>{String(r[3] ?? '')}</td>
+                          <td>{String(r[2] ?? '')}</td>
+                          <td>{String(r[6] ?? r[5] ?? '')}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
 
